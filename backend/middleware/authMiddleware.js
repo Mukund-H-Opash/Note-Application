@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
-   const User = require('../models/User');
+const User = require('../models/User');
 
-   const authMiddleware = async (req, res, next) => {
+  const authMiddleware = async (req, res, next) => {
 
      const token = req.header('Authorization')?.replace('Bearer ', '');
      
@@ -18,7 +18,7 @@ const jwt = require('jsonwebtoken');
        res.status(401).json({ message: 'Unauthorized' });
        console.log(error);
      }
-   };
+  };
 
 
-   module.exports = { authMiddleware };
+   module.exports =  authMiddleware ;

@@ -1,4 +1,5 @@
 const user = require("../models/User");
+const Note = require("../models/Note");
 
 const getallusers = async (req, res) => {
     try {
@@ -20,17 +21,9 @@ const getuserbyid = async (req, res) => {
     }
 };
 
-
-module.exports = { getallusers, getuserbyid };
-
-
-const User = require("../models/User");
-const Note = require("../models/Note");
-
-// Admin: View all users and their notes
 const getAllUsersWithNotes = async (req, res) => {
   try {
-    const users = await User.find({}, { password: 0 }); // exclude password
+    const users = await User.find({}, { password: 0 }); 
 
     const results = await Promise.all(
       users.map(async (user) => {
@@ -48,6 +41,8 @@ const getAllUsersWithNotes = async (req, res) => {
   }
 };
 
-module.exports = {
-  getAllUsersWithNotes,
-};
+
+
+
+module.exports = { getallusers, getuserbyid ,  getAllUsersWithNotes};
+

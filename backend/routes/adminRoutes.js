@@ -6,9 +6,10 @@ const roleMiddleware = require('../middleware/roleMiddleware');
 
 
 
-router.get('/', authMiddleware,roleMiddleware(['admin']), getallusers);
-router.get('/:id', authMiddleware,roleMiddleware(['admin']), getuserbyid);
-router.get('/notes', authMiddleware, getAllUsersWithNotes);
+router.get('/', authMiddleware,roleMiddleware(['Admin']), getallusers);
+router.get('/:id', authMiddleware,roleMiddleware(['Admin']), getuserbyid);
+
+
     
 module.exports = router
 

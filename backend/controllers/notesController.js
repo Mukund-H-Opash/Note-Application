@@ -12,7 +12,7 @@ const createNote = async (req, res) => {
       title,
       content,
       tags,
-      owner: req.user.userId,
+      userId: req.user._id, 
     });
 
     res.status(201).json(note);
@@ -24,7 +24,7 @@ const createNote = async (req, res) => {
 // Get all notes for current user
 const getNotes = async (req, res) => {
   try {
-    const notes = await Note.find({ owner: req.user.userId }).sort({ updatedAt: -1 });
+    const notes = await Note.find({ userId:req.user._id }).sort({ updatedAt: -1 });
     res.json(notes);
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
@@ -34,7 +34,7 @@ const getNotes = async (req, res) => {
 // Update a note
 const updateNote = async (req, res) => {
   try {
-    const note = await Note.findOne({ _id: req.params.id, owner: req.user.userId });
+    const note = await Note.findOne({ _id: req.params.id,  userId:req.user._id});
 
     if (!note) return res.status(404).json({ message: "Note not found" });
 
@@ -55,7 +55,7 @@ const updateNote = async (req, res) => {
 // Delete a note
 const deleteNote = async (req, res) => {
   try {
-    const note = await Note.findOneAndDelete({ _id: req.params.id, owner: req.user.userId });
+    const note = await Note.findOneAndDelete({ _id: req.params.id,  userId:req.user._id });
 
     if (!note) return res.status(404).json({ message: "Note not found" });
 

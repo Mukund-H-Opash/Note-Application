@@ -1,13 +1,12 @@
-
 const User = require('../models/User');
 
-const roleMiddleware = (...roles) => {
+const rolesMiddleware = (...roles) => {
   return (req, res, next) => {
-    if (!roles.includes(req.user.role)) {
-      return res.status(403).json({ message: "Access denied" });
+    if (!roles.some(role => req.user.roles.includes(role))) {
+      return res.status(403).json({ message: "Access denied"  });
     }
     next();
   };
 };
 
-module.exports = roleMiddleware;
+module.exports = rolesMiddleware;

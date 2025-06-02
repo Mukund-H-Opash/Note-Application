@@ -21,28 +21,8 @@ const getuserbyid = async (req, res) => {
     }
 };
 
-const getAllUsersWithNotes = async (req, res) => {
-  try {
-    const users = await User.find({}, { password: 0 }); 
-
-    const results = await Promise.all(
-      users.map(async (user) => {
-        const notes = await Note.find({ owner: user._id });
-        return {
-          user,
-          notes,
-        };
-      })
-    );
-
-    res.json(results);
-  } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
-  }
-};
 
 
 
-
-module.exports = { getallusers, getuserbyid ,  getAllUsersWithNotes};
+module.exports = { getallusers, getuserbyid };
 

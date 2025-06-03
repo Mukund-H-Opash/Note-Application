@@ -1,103 +1,159 @@
-import Image from "next/image";
+// pages/account.tsx
+'use client';
 
-export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+import React, { useState, useEffect } from 'react';
+import {
+  Box,
+  Typography,
+  TextField,
+  Button,
+  FormControl,
+  FormLabel,
+} from '@mui/material';
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
-  );
+interface UserProfile {
+  name: string;
+  username: string;
+  bio: string;
+  email: string;
 }
+
+const fetchUserProfile = async (): Promise<UserProfile> => {
+  // Replace with your actual API endpoint to fetch user profile data
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve({
+        name: 'John Doe',
+        username: 'johndoe123',
+        bio: 'Software enthusiast',
+        email: 'john.doe@example.com',
+      });
+    }, 200);
+  });
+};
+
+const updateUserEmailOnServer = async (newEmail: string) => {
+  // Replace with your actual API endpoint to update the user's email
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      console.log('Updating email to:', newEmail);
+      // Simulate a successful update
+      resolve({ message: 'Email updated successfully' });
+      // Simulate an error: reject({ message: 'Failed to update email' });
+    }, 300);
+  });
+};
+
+const AccountPage: React.FC = () => {
+  const [profile, setProfile] = useState<UserProfile>({
+    name: '',
+    username: '',
+    bio: '',
+    email: '',
+  });
+  const [newEmail, setNewEmail] = useState('');
+  const [isUpdatingEmail, setIsUpdatingEmail] = useState(false);
+  const [emailUpdateMessage, setEmailUpdateMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      const data = await fetchUserProfile();
+      setProfile(data);
+      setNewEmail(data.email); // Initialize newEmail with the current email
+    };
+
+    loadProfile();
+  }, []);
+
+  const handleUpdateEmail = async () => {
+    setIsUpdatingEmail(true);
+    setEmailUpdateMessage(null);
+    try {
+      const result = await updateUserEmailOnServer(newEmail);
+      setEmailUpdateMessage(result.message);
+      // Optionally, update the profile state with the new email
+      setProfile((prevProfile) => ({ ...prevProfile, email: newEmail }));
+    } catch (error: any) {
+      setEmailUpdateMessage(error.message || 'Failed to update email.');
+    } finally {
+      setIsUpdatingEmail(false);
+    }
+  };
+
+  return (
+    <Box sx={{ p: 3 }}>
+      <Typography variant="h4" gutterBottom>
+        Account
+      </Typography>
+
+      <Typography variant="h6" mt={3} gutterBottom>
+        Profile
+      </Typography>
+      <FormControl fullWidth margin="normal">
+        <FormLabel htmlFor="name">Name</FormLabel>
+        <TextField
+          id="name"
+          value={profile.name}
+          InputProps={{
+            readOnly: true,
+          }}
+        />
+      </FormControl>
+      <FormControl fullWidth margin="normal">
+        <FormLabel htmlFor="username">Username</FormLabel>
+        <TextField
+          id="username"
+          value={profile.username}
+          InputProps={{
+            readOnly: true,
+          }}
+        />
+      </FormControl>
+      <FormControl fullWidth margin="normal">
+        <FormLabel htmlFor="bio">Bio</FormLabel>
+        <TextField
+          id="bio"
+          value={profile.bio}
+          InputProps={{
+            readOnly: true,
+          }}
+          multiline
+          rows={2}
+        />
+      </FormControl>
+
+      <Typography variant="h6" mt={4} gutterBottom>
+        Email
+      </Typography>
+      <FormControl fullWidth margin="normal">
+        <FormLabel htmlFor="email">Email</FormLabel>
+        <TextField
+          id="email"
+          value={newEmail}
+          onChange={(e) => setNewEmail(e.target.value)}
+          variant="outlined"
+          type="email"
+        />
+      </FormControl>
+      <Button
+        variant="contained" 
+        onClick={handleUpdateEmail}
+        disabled={isUpdatingEmail || newEmail === profile.email}
+      >
+        {isUpdatingEmail ? 'Updating Email...' : 'Update Email'}
+      </Button>
+      {emailUpdateMessage && (
+        <Typography mt={1} color={emailUpdateMessage.includes('Failed') ? 'error' : 'success'}>
+          {emailUpdateMessage}
+        </Typography>
+      )}
+
+      <Typography variant="h6" mt={4} gutterBottom>
+        Password
+      </Typography>
+      <Button variant="outlined">Change Password</Button>
+    </Box>
+  );
+};
+
+export default AccountPage;

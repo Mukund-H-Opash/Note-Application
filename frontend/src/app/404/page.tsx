@@ -1,103 +1,112 @@
-import Image from "next/image";
+import React from 'react';
+import Image from 'next/image'; // Using Next.js Image for optimized images
+import Link from 'next/link';   // Using Next.js Link for client-side navigation
+import Header from '@/components/Header';
 
-export default function Home() {
+// MUI Components
+import {
+  Typography,
+  Button,
+  Box,
+  Container,
+} from '@mui/material';
+
+const lockIllustrationPath = "/UnauthorizedAccess.jpg"
+
+export default function UnauthorizedPageUpdated() {
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
+    <Box sx={{
+      minHeight: '100vh',
+      backgroundColor: '#F5F8FF', 
+      display: 'flex',
+      flexDirection: 'column',
+    }}>
+      
+      <Header />
+      {/* Main Content */}
+      <Box sx={{
+        flexGrow: 1,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        p: { xs: 2, sm: 3 } // Padding for the centering container
+      }}>
+        <Container
+          maxWidth="sm"
+          sx={{
+            textAlign: 'center',
+            backgroundColor: 'white',
+            padding: { xs: 3, sm: 4, md: 6 },
+            borderRadius: '12px', // Slightly larger border radius
+            boxShadow: '0px 4px 12px rgba(0,0,0,0.08)', // Refined shadow
+          }}
+        >
+          <Box sx={{
+            backgroundColor: '#FFF4E5', // Light orange background from image
+            borderRadius: '50%',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            p: 3, // Adjusted padding if needed
+            mb: 3,
+            width: { xs: 140, sm: 160 }, 
+            height: { xs: 140, sm: 160 },
+          }}>
+            
             <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+              src={lockIllustrationPath}
+              alt="Unauthorized Access Illustration"
+              width={220} 
+              height={220}
+              style={{ objectFit: 'contain' }}
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            
+          </Box>
+          <Typography
+            variant="h4"
+            component="h1"
+            sx={{ fontWeight: 'bold', color: 'grey.800', mb: 1.5, fontSize: { xs: '1.75rem', sm: '2.125rem' } }}
           >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+            Unauthorized Access
+          </Typography>
+          <Typography
+            variant="body1"
+            sx={{
+              color: 'grey.600',
+              mb: 4,
+              lineHeight: 1.7,
+              fontSize: { xs: '0.9rem', sm: '1rem' },
+              maxWidth: '450px', 
+              mx: 'auto'
+            }}
+          >
+            You do not have permission to view this page. Please log in or contact
+            your administrator for assistance.
+          </Typography>
+          <Link href="/" passHref>
+            <Button
+              
+              variant="contained"
+              sx={{
+                backgroundColor: '#5B6DFF', 
+                color: 'white',
+                padding: { xs: '10px 24px', sm: '12px 32px' },
+                borderRadius: '9999px', 
+                fontSize: { xs: '0.9rem', sm: '1rem' },
+                fontWeight: 500, 
+                boxShadow: '0px 2px 8px rgba(91, 109, 255, 0.3)',
+                textTransform: 'none',
+                '&:hover': {
+                  backgroundColor: '#4a5ce0', 
+                  boxShadow: '0px 4px 12px rgba(91, 109, 255, 0.4)',
+                },
+              }}
+            >
+              Go to Home
+            </Button>
+          </Link>
+        </Container>
+      </Box>
+    </Box>
   );
 }

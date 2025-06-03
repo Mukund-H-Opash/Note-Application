@@ -8,6 +8,10 @@ const NoteSchema = new Schema({
     required: true,
     index: true, 
   },
+  collaborators: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+  }],
   title: {
     type: String,
     required: true,
@@ -39,7 +43,4 @@ NoteSchema.pre('save', function(next) {
 });
 
 const Note = mongoose.model('Note', NoteSchema);
-
-
 module.exports = Note;
-

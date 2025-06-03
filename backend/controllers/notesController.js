@@ -3,7 +3,7 @@ const Note = require("../models/Note");
 // Create a new note
 const createNote = async (req, res) => {
   try {
-    const { title, content, tags } = req.body;
+    const { title, content, tags, collaborators } = req.body;
     if (!title || !content) {
       return res.status(400).json({ message: "Title and content are required" });
     }
@@ -12,7 +12,8 @@ const createNote = async (req, res) => {
       title,
       content,
       tags,
-      userId: req.user._id, 
+      userId: req.user._id,
+      collaborators: collaborators || [],
     });
 
     res.status(201).json(note);
@@ -21,28 +22,39 @@ const createNote = async (req, res) => {
   }
 };
 
-// Get all notes for current user
+// Get all notes for current user (owner or collaborator)
 const getNotes = async (req, res) => {
   try {
-    const notes = await Note.find({ userId:req.user._id }).sort({ updatedAt: -1 });
+    const notes = await Note.find({
+      $or: [
+        { userId: req.user._id },
+        { collaborators: req.user._id }
+      ]
+    }).sort({ updatedAt: -1 });
     res.json(notes);
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
 
-// Update a note
+// Update a note (only if owner or collaborator)
 const updateNote = async (req, res) => {
   try {
-    const note = await Note.findOne({ _id: req.params.id,  userId:req.user._id});
+    const { title, content, tags, collaborators } = req.body;
+    const note = await Note.findOne({
+      _id: req.params.id,
+      $or: [
+        { userId: req.user._id },
+        { collaborators: req.user._id }
+      ]
+    });
 
     if (!note) return res.status(404).json({ message: "Note not found" });
-
-    const { title, content, tags } = req.body;
 
     note.title = title || note.title;
     note.content = content || note.content;
     note.tags = tags || note.tags;
+    if (collaborators) note.collaborators = collaborators;
 
     await note.save();
 
@@ -52,10 +64,13 @@ const updateNote = async (req, res) => {
   }
 };
 
-// Delete a note
+// Delete a note (only if owner)
 const deleteNote = async (req, res) => {
   try {
-    const note = await Note.findOneAndDelete({ _id: req.params.id,  userId:req.user._id });
+    const note = await Note.findOneAndDelete({
+      _id: req.params.id,
+      userId: req.user._id
+    });
 
     if (!note) return res.status(404).json({ message: "Note not found" });
 

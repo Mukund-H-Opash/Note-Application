@@ -57,7 +57,7 @@ const Dashboard = () => {
     setHasMounted(true);
     // Check for token in cookies to verify authentication
     const token = Cookies.get('token');
-    console.log('Token in Dashboard:', token);
+    // console.log('Token in Dashboard:', token);
     if (isAuthenticated && token) {
       dispatch(fetchUsers());
       dispatch(fetchNotes());
@@ -78,10 +78,10 @@ const Dashboard = () => {
     router.push(`/notes/${id}`);
   };
 
-  console.log("Users in Dashboard:", users);
-  console.log("Notes in Dashboard:", notes);
-  console.log("Admin Error:", adminError);
-  console.log("Notes Error:", notesError);
+  // console.log("Users in Dashboard:", users);
+  // console.log("Notes in Dashboard:", notes);
+  // console.log("Admin Error:", adminError);
+  // console.log("Notes Error:", notesError);
 
   if (!hasMounted) {
     return (

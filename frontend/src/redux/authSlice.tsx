@@ -29,7 +29,7 @@ const initialState: AuthState = {
   roles: ['User'],
   user: null,
   loading: false,
-  isAuthenticated: false,
+  isAuthenticated: true,
 };
 
 const authSlice = createSlice({
@@ -87,7 +87,7 @@ export const signup = (): AppThunk => async (dispatch, getState) => {
     const data = await response.json();
     dispatch(setUser(data));
     dispatch(setIsAuthenticated(true));
-    console.log('Signup successful');
+    // console.log('Signup successful');
   } catch (error) {
     console.error('Signup error:', (error as Error).message);
   } finally {
@@ -125,7 +125,7 @@ export const login = (): AppThunk => async (dispatch, getState) => {
     Cookies.set('token', data.token, { expires: 1 });
     dispatch(setUser(data));
     dispatch(setIsAuthenticated(true));
-    console.log('Login successful');
+    // console.log('Login successful');
   } catch (error) {
     console.error('Login error:', (error as Error).message);
   } finally {

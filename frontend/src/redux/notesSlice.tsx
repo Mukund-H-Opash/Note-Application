@@ -150,7 +150,7 @@ export const fetchNotes = (): AppThunk => async (dispatch) => {
   dispatch(fetchNotesStart());
   try {
     const token = Cookies.get('token');
-    console.log('Token in fetchNotes:', token);
+    // console.log('Token in fetchNotes:', token);
     if (!token) {
       dispatch(fetchNotesFailure('No token found in cookies'));
       return;
@@ -184,7 +184,7 @@ export const fetchNoteById = (id: string): AppThunk => async (dispatch) => {
   dispatch(fetchNoteByIdStart());
   try {
     const token = Cookies.get('token');
-    console.log('Token in fetchNoteById:', token);
+    
     if (!token) {
       dispatch(fetchNoteByIdFailure('No token found in cookies'));
       return;
@@ -218,7 +218,7 @@ export const fetchCollaborators = (userIds: string[]): AppThunk => async (dispat
   dispatch(fetchCollaboratorsStart());
   try {
     const token = Cookies.get('token');
-    console.log('Token in fetchCollaborators:', token);
+    
     if (!token) {
       dispatch(fetchCollaboratorsFailure('No token found in cookies'));
       return;
@@ -262,7 +262,7 @@ export const createNote = (noteData: {
   dispatch(createNoteStart());
   try {
     const token = Cookies.get('token');
-    console.log('Token in createNote:', token);
+    // console.log('Token in createNote:', token);
     if (!token) {
       dispatch(createNoteFailure('No token found in cookies'));
       return;
@@ -305,7 +305,7 @@ export const updateNote = (
   dispatch(updateNoteStart());
   try {
     const token = Cookies.get('token');
-    console.log('Token in updateNote:', token);
+    // console.log('Token in updateNote:', token);
     if (!token) {
       dispatch(updateNoteFailure('No token found in cookies'));
       return;
@@ -340,7 +340,7 @@ export const deleteNote = (id: string): AppThunk => async (dispatch) => {
   dispatch(deleteNoteStart());
   try {
     const token = Cookies.get('token');
-    console.log('Token in deleteNote:', token);
+    // console.log('Token in deleteNote:', token);
     if (!token) {
       dispatch(deleteNoteFailure('No token found in cookies'));
       return;

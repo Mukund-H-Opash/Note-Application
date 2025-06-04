@@ -26,6 +26,7 @@ interface ChatState {
   messages: ChatMessage[];
   connected: boolean;
   error: string | null;
+  socket: any; 
 }
 
 
@@ -34,6 +35,7 @@ const initialState: ChatState = {
   messages: [],
   connected: false,
   error: null,
+  socket:[] 
 };
 
 const chatSlice = createSlice({

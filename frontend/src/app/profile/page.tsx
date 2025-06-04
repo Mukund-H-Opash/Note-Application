@@ -32,11 +32,15 @@ const fetchUserProfile = async (): Promise<UserProfile> => {
   });
 };
 
-const updateUserEmailOnServer = async (newEmail: string) => {
+interface EmailUpdateResponse {
+  message: string;
+}
+
+const updateUserEmailOnServer = async (newEmail: string): Promise<EmailUpdateResponse> => {
   // Replace with your actual API endpoint to update the user's email
   return new Promise((resolve, reject) => {
     setTimeout(() => {
-      console.log('Updating email to:', newEmail);
+      // console.log('Updating email to:', newEmail);
       // Simulate a successful update
       resolve({ message: 'Email updated successfully' });
       // Simulate an error: reject({ message: 'Failed to update email' });

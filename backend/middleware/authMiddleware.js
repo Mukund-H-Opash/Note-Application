@@ -16,7 +16,7 @@ const User = require('../models/User');
        next();
      } catch (error) {
        res.status(401).json({ message: 'Unauthorized' });
-       console.log(error);
+      
      }
   };
 

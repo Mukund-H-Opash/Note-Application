@@ -1,18 +1,17 @@
 // ./socket.js
 
 const jwt = require('jsonwebtoken');
-const User = require('../models/User'); // Adjust path as per your project structure
-const Note = require('../models/Note');   // Adjust path
-const Chat = require('../models/Chat');   // Adjust path
+const User = require('../models/User'); 
+const Note = require('../models/Note');   
+const Chat = require('../models/Chat'); 
 
-// To keep track of who is currently editing which note
-// Structure: { noteId: { userId: 'editingUserId', username: 'editorUsername', socketId: 'editorsSocketId' } }
+
 const activeEditors = {};
 
 module.exports = function(io) {
   // Socket.IO Authentication Middleware
   io.use(async (socket, next) => {
-    const token = socket.handshake.auth.token; // Client should send token here
+    const token = socket.handshake.auth.token; 
     if (!token) {
       return next(new Error('Authentication error: No token provided'));
     }
@@ -33,9 +32,6 @@ module.exports = function(io) {
   io.on('connection', (socket) => {
     console.log(`User connected: ${socket.id}, UserID: ${socket.user.id}, Username: ${socket.user.username}`);
 
-    /**
-     * Handles a user joining a specific note's room.
-     */
     socket.on('joinNoteRoom', async ({ noteId }) => {
       try {
         const note = await Note.findById(noteId);
@@ -93,6 +89,7 @@ module.exports = function(io) {
      * Handles incoming chat messages for a note.
      */
     socket.on('sendChatMessage', async ({ noteId, message }) => {
+      console.log(`Received sendChatMessage: noteId=${noteId}, message=${message}, from user=${socket.user.username}`);
       if (!message || message.trim() === '') return; // Ignore empty messages
       try {
         // Ensure user is still in the room (though client logic should handle this)

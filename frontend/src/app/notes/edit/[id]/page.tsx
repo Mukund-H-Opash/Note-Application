@@ -172,7 +172,7 @@ const CreateNotePage = () => {
             sx={{ mb: 2 }}
           />
           <Button type="submit" variant="contained" color="primary" disabled={loading}>
-            {isEditMode ? "Update Note" : isAddCollaboratorMode ? "Add Collaborator" : "Create Note"}
+            {isEditMode ? "edit Note" : isAddCollaboratorMode ? "Add Collaborator" : "Create Note"}
           </Button>
           <Button
             variant="outlined"

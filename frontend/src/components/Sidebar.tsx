@@ -2,11 +2,11 @@ import { Box, Typography, TextField, Button, IconButton } from '@mui/material';
 import NotesIcon from '@mui/icons-material/Notes';
 import BookIcon from '@mui/icons-material/Book';
 import ShareIcon from '@mui/icons-material/Share';
-import TagIcon from '@mui/icons-material/Tag';
-import DeleteIcon from '@mui/icons-material/Delete';
-import SearchIcon from '@mui/icons-material/Search';
+import { useRouter } from 'next/navigation';
 
 export default function Sidebar() {
+  const router = useRouter();
+
   return (
     <Box
       sx={{
@@ -19,21 +19,7 @@ export default function Sidebar() {
         height: '100vh',
       }}
     >
-      {/* Header with Search */}
-      <Box sx={{ mb: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', bgcolor: '#f0f0f0', borderRadius: 1, p: 0.5 }}>
-          <IconButton size="small" sx={{ mr: 0.5 }}>
-            <SearchIcon fontSize="small" />
-          </IconButton>
-          <TextField
-            variant="standard"
-            placeholder="Search"
-            fullWidth
-            InputProps={{ disableUnderline: true }}
-            sx={{ bgcolor: '#f0f0f0', '& .MuiInputBase-input': { fontSize: '0.9rem' } }}
-          />
-        </Box>
-      </Box>
+    
 
       {/* Navigation Items */}
       <Box sx={{ flexGrow: 1 }}>
@@ -43,6 +29,23 @@ export default function Sidebar() {
         <Box sx={{ mb: 1 }}>
           <Button
             startIcon={<NotesIcon />}
+            onClick={() => router.push('/dashboard')}
+            sx={{
+              justifyContent: 'flex-start',
+              textTransform: 'none',
+              width: '100%',
+              color: '#000',
+              '&:hover': { bgcolor: 'transparent' },
+              fontSize: '0.9rem',
+            }}
+          >
+            Dashboard
+          </Button>
+        </Box>
+        <Box sx={{ mb: 1 }}>
+          <Button
+            startIcon={<BookIcon />}
+            onClick={() => router.push('/notes')}
             sx={{
               justifyContent: 'flex-start',
               textTransform: 'none',
@@ -57,22 +60,8 @@ export default function Sidebar() {
         </Box>
         <Box sx={{ mb: 1 }}>
           <Button
-            startIcon={<BookIcon />}
-            sx={{
-              justifyContent: 'flex-start',
-              textTransform: 'none',
-              width: '100%',
-              color: '#000',
-              '&:hover': { bgcolor: 'transparent' },
-              fontSize: '0.9rem',
-            }}
-          >
-            Notebooks
-          </Button>
-        </Box>
-        <Box sx={{ mb: 1 }}>
-          <Button
             startIcon={<ShareIcon />}
+            onClick={() => router.push('/chat')}
             sx={{
               justifyContent: 'flex-start',
               textTransform: 'none',
@@ -82,24 +71,10 @@ export default function Sidebar() {
               fontSize: '0.9rem',
             }}
           >
-            Shared
+            chat
           </Button>
         </Box>
-        <Box sx={{ mb: 1 }}>
-          <Button
-            startIcon={<TagIcon />}
-            sx={{
-              justifyContent: 'flex-start',
-              textTransform: 'none',
-              width: '100%',
-              color: '#000',
-              '&:hover': { bgcolor: 'transparent' },
-              fontSize: '0.9rem',
-            }}
-          >
-            Tags
-          </Button>
-        </Box>
+        
       </Box>
 
       {/* Actions */}
@@ -107,22 +82,10 @@ export default function Sidebar() {
         <Button
           variant="contained"
           color="primary"
+          onClick={() => router.push('/notes/create')}
           sx={{ mb: 2, width: '100%', textTransform: 'none', fontSize: '0.9rem' }}
         >
           New Note
-        </Button>
-        <Button
-          startIcon={<DeleteIcon />}
-          sx={{
-            justifyContent: 'flex-start',
-            textTransform: 'none',
-            width: '100%',
-            color: '#000',
-            '&:hover': { bgcolor: 'transparent' },
-            fontSize: '0.9rem',
-          }}
-        >
-          Trash
         </Button>
       </Box>
     </Box>

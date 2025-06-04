@@ -1,5 +1,6 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import type { AppThunk } from './store';
+import Cookies from 'js-cookie';
 
 interface User {
   _id: string;
@@ -16,7 +17,7 @@ interface AuthState {
   email: string;
   password: string;
   roles: string[];
-  user: User | null; // Store user data including roles
+  user: User | null;
   loading: boolean;
   isAuthenticated: boolean;
 }
@@ -84,7 +85,7 @@ export const signup = (): AppThunk => async (dispatch, getState) => {
     }
 
     const data = await response.json();
-    dispatch(setUser(data)); // Store user data in state
+    dispatch(setUser(data));
     dispatch(setIsAuthenticated(true));
     console.log('Signup successful');
   } catch (error) {
@@ -99,6 +100,11 @@ export const login = (): AppThunk => async (dispatch, getState) => {
 
   dispatch(setLoading(true));
   try {
+    // Clear existing cookies before saving new token
+    Cookies.remove('token');
+    Cookies.remove('authData');
+    Cookies.remove('prelogin');
+
     const response = await fetch('http://localhost:5000/auth/login', {
       method: 'POST',
       headers: {
@@ -116,13 +122,29 @@ export const login = (): AppThunk => async (dispatch, getState) => {
 
     const data = await response.json();
     document.cookie = `authData=${JSON.stringify(data)}; path=/; max-age=3600`;
-    dispatch(setUser(data)); // Store user data in state
+    Cookies.set('token', data.token, { expires: 1 });
+    dispatch(setUser(data));
     dispatch(setIsAuthenticated(true));
     console.log('Login successful');
   } catch (error) {
     console.error('Login error:', (error as Error).message);
   } finally {
     dispatch(setLoading(false));
+  }
+};
+
+export const handleLogin = (): AppThunk => async (dispatch) => {
+  Cookies.set('prelogin', 'attempt', { expires: 1 });
+  dispatch(login());
+};
+
+export const checkAuth = () => (dispatch: (arg0: { payload: boolean; type: "auth/setIsAuthenticated"; }) => void) => {
+  const token = Cookies.get('token');
+  if (token) {
+    dispatch(setIsAuthenticated(true));
+    // Optionally fetch user info
+  } else {
+    dispatch(setIsAuthenticated(false));
   }
 };
 

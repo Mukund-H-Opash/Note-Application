@@ -37,6 +37,16 @@ const getNotes = async (req, res) => {
   }
 };
 
+const getNoteById = async (req, res) => {
+  try {
+    const note = await Note.findById(req.params.id);
+    if (!note) return res.status(404).json({ message: "Note not found" });
+    res.json(note);
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
 // Update a note (only if owner or collaborator)
 const updateNote = async (req, res) => {
   try {
@@ -83,6 +93,7 @@ const deleteNote = async (req, res) => {
 module.exports = {
   createNote,
   getNotes,
+  getNoteById,
   updateNote,
   deleteNote,
 };

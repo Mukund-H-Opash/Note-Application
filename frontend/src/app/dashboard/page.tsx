@@ -1,13 +1,24 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import Sidebar from "@/components/Sidebar";
-import { Box, Typography, Table, TableBody, TableCell, TableHead, TableRow, Button } from "@mui/material";
+import {
+  Box,
+  Typography,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  Button,
+  CircularProgress,
+} from "@mui/material";
 import { useRouter } from "next/navigation";
 import { useSelector, useDispatch } from "react-redux";
 import type { RootState, AppDispatch } from "@/redux/store";
 import { fetchUsers } from "@/redux/adminSlice";
 import { fetchNotes } from "@/redux/notesSlice";
+import Cookies from "js-cookie";
 
 interface User {
   _id: string;
@@ -36,44 +47,49 @@ const Dashboard = () => {
   const router = useRouter();
   const { user, isAuthenticated } = useSelector((state: RootState) => state.auth);
   const users = useSelector((state: RootState) => state.admin.users);
+  const adminError = useSelector((state: RootState) => state.admin.error);
   const notes = useSelector((state: RootState) => state.notes.notes);
+  const notesError = useSelector((state: RootState) => state.notes.error);
+
+  const [hasMounted, setHasMounted] = useState(false);
 
   useEffect(() => {
-    // Fetch users and notes if not already fetched
-    dispatch(fetchUsers());
-    dispatch(fetchNotes());
-  }, [dispatch]);
+    setHasMounted(true);
+    // Check for token in cookies to verify authentication
+    const token = Cookies.get('token');
+    console.log('Token in Dashboard:', token);
+    if (isAuthenticated && token) {
+      dispatch(fetchUsers());
+      dispatch(fetchNotes());
+    } else if (!token) {
+      router.push("/login");
+    }
+  }, [dispatch, isAuthenticated, router]);
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      router.push('/login');
-      return;
+    if (hasMounted && !isAuthenticated) {
+      router.push("/login");
     }
+  }, [isAuthenticated, hasMounted, router]);
 
-    // Get authData from cookie
-    const cookies = document.cookie.split('; ').reduce((acc, cookie) => {
-      const [name, value] = cookie.split('=');
-      acc[name] = value;
-      return acc;
-    }, {} as Record<string, string>);
 
-    const authData = cookies['authData'] ? JSON.parse(cookies['authData']) : null;
-
-    // Check roles from both cookie and Redux state
-    const userRoles = user?.roles || (authData?.roles || []);
-
-    if (!userRoles.includes('Admin')) {
-      router.push('/notes');
-    }
-  }, [isAuthenticated, user, router]);
-
-  const handleUserClick = (id: string) => {
-    router.push(`/user/${id}`);
-  };
 
   const handleNoteClick = (id: string) => {
-    router.push(`/note/${id}`);
+    router.push(`/notes/${id}`);
   };
+
+  console.log("Users in Dashboard:", users);
+  console.log("Notes in Dashboard:", notes);
+  console.log("Admin Error:", adminError);
+  console.log("Notes Error:", notesError);
+
+  if (!hasMounted) {
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", mt: 10 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ display: "flex" }}>
@@ -82,6 +98,17 @@ const Dashboard = () => {
         <Typography variant="h4" gutterBottom>
           Admin Panel
         </Typography>
+
+        {adminError && (
+          <Typography color="error" gutterBottom>
+            Admin Error: {adminError}
+          </Typography>
+        )}
+        {notesError && (
+          <Typography color="error" gutterBottom>
+            Notes Error: {notesError}
+          </Typography>
+        )}
 
         <Typography variant="h6" gutterBottom>
           User Management
@@ -92,20 +119,24 @@ const Dashboard = () => {
               <TableCell>User</TableCell>
               <TableCell>Email</TableCell>
               <TableCell>Notes Count</TableCell>
-              <TableCell>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {users.map((user: User) => (
-              <TableRow key={user._id}>
-                <TableCell>{user.username}</TableCell>
-                <TableCell>{user.email}</TableCell>
-                <TableCell>{notes.filter((note: Note) => note.userId === user._id).length}</TableCell>
-                <TableCell>
-                  <Button onClick={() => handleUserClick(user._id)}>View Notes</Button>
-                </TableCell>
+            {users.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={4}>No users available</TableCell>
               </TableRow>
-            ))}
+            ) : (
+              users.map((user: User) => (
+                <TableRow key={user._id}>
+                  <TableCell>{user.username}</TableCell>
+                  <TableCell>{user.email}</TableCell>
+                  <TableCell>
+                    {notes.filter((note: Note) => note.userId === user._id).length}
+                  </TableCell>
+                </TableRow> 
+              ))
+            )}
           </TableBody>
         </Table>
 
@@ -122,19 +153,27 @@ const Dashboard = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {notes.map((note: Note) => {
-              const author = users.find((user: User) => user._id === note.userId);
-              return (
-                <TableRow key={note._id}>
-                  <TableCell>{note.title}</TableCell>
-                  <TableCell>{author ? author.username : "Unknown"}</TableCell>
-                  <TableCell>{new Date(note.createdAt).toLocaleDateString()}</TableCell>
-                  <TableCell>
-                    <Button onClick={() => handleNoteClick(note._id)}>View</Button>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
+            {notes.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={4}>No notes available</TableCell>
+              </TableRow>
+            ) : (
+              notes.map((note: Note) => {
+                const author = users.find((user: User) => user._id === note.userId);
+                return (
+                  <TableRow key={note._id}>
+                    <TableCell>{note.title}</TableCell>
+                    <TableCell>{author ? author.username : "Unknown"}</TableCell>
+                    <TableCell>
+                      {new Date(note.createdAt).toISOString().split("T")[0]}
+                    </TableCell>
+                    <TableCell>
+                      <Button onClick={() => handleNoteClick(note._id)}>View</Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
           </TableBody>
         </Table>
       </Box>

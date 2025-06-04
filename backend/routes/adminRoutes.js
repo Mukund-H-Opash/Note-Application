@@ -7,7 +7,7 @@ const roleMiddleware = require('../middleware/roleMiddleware');
 
 
 router.get('/', authMiddleware,roleMiddleware(['Admin']), getallusers);
-router.get('/:id', authMiddleware,roleMiddleware(['Admin']), getuserbyid);
+router.get('/:id', authMiddleware, getuserbyid);
 
 
     

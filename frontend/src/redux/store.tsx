@@ -2,12 +2,14 @@ import { configureStore, ThunkAction, Action } from '@reduxjs/toolkit';
 import adminReducer from './adminSlice';
 import notesReducer from './notesSlice';
 import authReducer from './authSlice';
+import chatReducer from './chatSlice';
 
 export const store = configureStore({
   reducer: {
     admin: adminReducer,
     notes: notesReducer,
     auth: authReducer,
+    chat: chatReducer,
   },
 });
 

@@ -29,7 +29,7 @@ export default function UnauthorizedPageUpdated() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        p: { xs: 2, sm: 3 } // Padding for the centering container
+        p: { xs: 2, sm: 3 },
       }}>
         <Container
           maxWidth="sm"

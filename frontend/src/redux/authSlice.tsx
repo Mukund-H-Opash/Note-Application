@@ -13,6 +13,7 @@ interface User {
 }
 
 interface AuthState {
+  token: any;
   username: string;
   email: string;
   password: string;
@@ -29,7 +30,8 @@ const initialState: AuthState = {
   roles: ['User'],
   user: null,
   loading: false,
-  isAuthenticated: true,
+  isAuthenticated: false,
+  token: undefined
 };
 
 const authSlice = createSlice({

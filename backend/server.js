@@ -21,7 +21,7 @@ require('./socket/socket')(io);
 const cors = require('cors');
 app.use(cors({ origin: 'http://localhost:3000', credentials: true }));
 
-const port = process.env.PORT || 4000;
+const port = process.env.PORT || 5000;
 server.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });

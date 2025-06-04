@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useEffect } from "react";
@@ -19,6 +18,7 @@ import {
   ListItemText,
   Fade,
 } from "@mui/material";
+import { styled } from '@mui/material/styles';
 import { fetchNoteById, fetchCollaborators } from "@/redux/notesSlice";
 import { checkAuth } from "@/redux/authSlice";
 
@@ -44,11 +44,124 @@ interface User {
   __v: number;
 }
 
+// Custom styled components
+const MainContainer = styled(Box)({
+  maxWidth: 900,
+  margin: '32px auto',
+  padding: '32px',
+  backgroundColor: '#f8fafc',
+  borderRadius: '12px',
+  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
+  fontFamily: "'Inter', sans-serif",
+  minHeight: '80vh',
+});
+
+const StyledCard = styled(Card)({
+  backgroundColor: '#ffffff',
+  borderRadius: '12px',
+  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
+  marginBottom: '24px',
+  transition: 'all 0.3s ease',
+  '&:hover': {
+    transform: 'translateY(-4px)',
+    boxShadow: '0 8px 20px rgba(0, 0, 0, 0.1)',
+  },
+});
+
+const TitleTypography = styled(Typography)({
+  fontFamily: "'Poppins', sans-serif",
+  fontWeight: 700,
+  fontSize: '2rem',
+  color: '#1a202c',
+  marginBottom: '16px',
+  letterSpacing: '-0.02em',
+});
+
+const ContentTypography = styled(Typography)({
+  fontFamily: "'Inter', sans-serif",
+  fontSize: '1rem',
+  color: '#2d3748',
+  marginBottom: '24px',
+  lineHeight: 1.6,
+});
+
+const MetaTypography = styled(Typography)({
+  fontFamily: "'Inter', sans-serif",
+  fontSize: '0.9rem',
+  color: '#718096',
+  marginBottom: '8px',
+});
+
+const SectionTypography = styled(Typography)({
+  fontFamily: "'Poppins', sans-serif",
+  fontWeight: 600,
+  fontSize: '1.25rem',
+  color: '#1a202c',
+  marginBottom: '16px',
+  marginTop: '24px',
+});
+
+const ErrorTypography = styled(Typography)({
+  fontFamily: "'Inter', sans-serif",
+  fontSize: '0.9rem',
+  color: '#dc2626',
+  backgroundColor: '#fef2f2',
+  padding: '12px',
+  borderRadius: '8px',
+  textAlign: 'center',
+  marginBottom: '16px',
+});
+
+const StyledChip = styled(Chip)(({ theme }) => ({
+  fontFamily: "'Inter', sans-serif",
+  fontSize: '0.85rem',
+  fontWeight: 500,
+  borderRadius: '6px',
+  backgroundColor: '#dbeafe',
+  color: theme.palette.primary.main,
+  border: 'none',
+  transition: 'all 0.2s ease',
+  '&:hover': {
+    backgroundColor: '#bfdbfe',
+    transform: 'scale(1.05)',
+  },
+}));
+
+const StyledList = styled(List)({
+  backgroundColor: '#ffffff',
+  borderRadius: '12px',
+  padding: '8px',
+  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+});
+
+const StyledListItem = styled(ListItem)({
+  borderBottom: '1px solid #e5e7eb',
+  padding: '12px 16px',
+  transition: 'background-color 0.2s ease',
+  '&:last-child': { borderBottom: 'none' },
+  '&:hover': {
+    backgroundColor: '#f1f5f9',
+  },
+});
+
+const ActionButton = styled(Button)(({ theme }) => ({
+  fontFamily: "'Inter', sans-serif",
+  fontWeight: 500,
+  fontSize: '0.9rem',
+  textTransform: 'none',
+  borderRadius: '8px',
+  padding: '10px 24px',
+  transition: 'all 0.3s ease',
+  '&:hover': {
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+    transform: 'translateY(-2px)',
+  },
+}));
+
 const NotePage = () => {
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
   const { id } = useParams();
-  // Move all useSelector calls to the top
   const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
   const { currentNote, collaborators, loading, error } = useSelector((state: RootState) => state.notes);
   const users = useSelector((state: RootState) => state.admin.users);
@@ -79,36 +192,45 @@ const NotePage = () => {
     router.push(`/notes/edit/${id}`);
   };
 
-  // Early returns after all Hooks are called
   if (loading) {
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
-        <CircularProgress color="primary" />
+      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", bgcolor: '#f8fafc' }}>
+        <CircularProgress sx={{ color: '#3b82f6' }} />
       </Box>
     );
   }
 
   if (error) {
     return (
-      <Box sx={{ p: 3, textAlign: "center" }}>
-        <Typography color="error" variant="h6" gutterBottom>
+      <MainContainer>
+        <ErrorTypography variant="h6">
           Error: {error}
-        </Typography>
-        <Button variant="contained" color="primary" onClick={handleBack}>
+        </ErrorTypography>
+        <ActionButton
+          variant="contained"
+          sx={{ background: 'linear-gradient(90deg, #3b82f6, #60a5fa)' }}
+          onClick={handleBack}
+        >
           Back to Dashboard
-        </Button>
-      </Box>
+        </ActionButton>
+      </MainContainer>
     );
   }
 
   if (!currentNote) {
     return (
-      <Box sx={{ p: 3, textAlign: "center" }}>
-        <Typography variant="h6">Note not found</Typography>
-        <Button variant="contained" color="primary" onClick={handleBack}>
+      <MainContainer>
+        <ErrorTypography variant="h6">
+          Note not found
+        </ErrorTypography>
+        <ActionButton
+          variant="contained"
+          sx={{ background: 'linear-gradient(90deg, #3b82f6, #60a5fa)' }}
+          onClick={handleBack}
+        >
           Back to Dashboard
-        </Button>
-      </Box>
+        </ActionButton>
+      </MainContainer>
     );
   }
 
@@ -118,99 +240,86 @@ const NotePage = () => {
 
   return (
     <>
+      <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap"
+        rel="stylesheet"
+      />
       <Head>
         <title>{currentNote.title}</title>
       </Head>
       <Fade in timeout={500}>
-        <Box
-          sx={{
-            maxWidth: 800,
-            mx: "auto",
-            p: 3,
-            bgcolor: "background.paper",
-            borderRadius: 2,
-            boxShadow: 3,
-            mt: 4,
-          }}
-        >
-          <Card sx={{ mb: 3, borderRadius: 2 }}>
-            <CardContent>
-              <Typography variant="h4" gutterBottom sx={{ fontWeight: "bold", color: "primary.main" }}>
+        <MainContainer>
+          <StyledCard>
+            <CardContent sx={{ padding: '24px' }}>
+              <TitleTypography variant="h4">
                 {currentNote.title}
-              </Typography>
-              <Typography variant="body1" sx={{ mb: 2, color: "text.primary" }}>
+              </TitleTypography>
+              <ContentTypography variant="body1">
                 {currentNote.content}
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              </ContentTypography>
+              <MetaTypography variant="body2">
                 Author: {author ? author.username : "Unknown"}
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              </MetaTypography>
+              <MetaTypography variant="body2">
                 Created: {new Date(currentNote.createdAt).toISOString().split("T")[0]}
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              </MetaTypography>
+              <MetaTypography variant="body2">
                 Updated: {new Date(currentNote.updatedAt).toISOString().split("T")[0]}
-              </Typography>
-              <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mb: 2 }}>
+              </MetaTypography>
+              <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mt: 2, mb: 2 }}>
                 {currentNote.tags.map((tag) => (
-                  <Chip key={tag} label={tag} color="primary" variant="outlined" size="small" />
+                  <StyledChip key={tag} label={tag} variant="filled" size="small" />
                 ))}
               </Box>
             </CardContent>
-          </Card>
+          </StyledCard>
 
-          <Typography variant="h6" gutterBottom sx={{ fontWeight: "medium" }}>
+          <SectionTypography variant="h6">
             Collaborators
-          </Typography>
+          </SectionTypography>
           {collaborators.length === 0 ? (
-            <Typography color="text.secondary">No collaborators found</Typography>
+            <MetaTypography>No collaborators found</MetaTypography>
           ) : (
-            <List sx={{ bgcolor: "background.default", borderRadius: 2, p: 1 }}>
+            <StyledList>
               {collaborators.map((user) => (
-                <ListItem
-                  key={user._id}
-                  sx={{
-                    borderBottom: "1px solid",
-                    borderColor: "divider",
-                    "&:last-child": { borderBottom: "none" },
-                  }}
-                >
+                <StyledListItem key={user._id}>
                   <ListItemText
                     primary={user.username}
                     secondary={user.email}
-                    primaryTypographyProps={{ fontWeight: "medium" }}
-                    secondaryTypographyProps={{ color: "text.secondary" }}
+                    primaryTypographyProps={{ fontWeight: 500, color: '#2d3748' }}
+                    secondaryTypographyProps={{ color: '#718096' }}
                   />
-                </ListItem>
+                </StyledListItem>
               ))}
-            </List>
+            </StyledList>
           )}
 
-          <Box sx={{ mt: 3, display: "flex", gap: 2 }}>
-            <Button
+          <Box sx={{ mt: 4, display: "flex", gap: 2, flexWrap: 'wrap' }}>
+            <ActionButton
               variant="contained"
-              color="primary"
+              sx={{ background: 'linear-gradient(90deg, #3b82f6, #60a5fa)' }}
               onClick={handleEdit}
-              sx={{ borderRadius: 2, px: 4 }}
             >
               Edit Note
-            </Button>
-            <Button
+            </ActionButton>
+            <ActionButton
               variant="contained"
-              color="secondary"
+              sx={{ background: 'linear-gradient(90deg, #6b7280, #9ca3af)' }}
               onClick={handleBack}
-              sx={{ borderRadius: 2, px: 4 }}
             >
               Back to Dashboard
-            </Button>
-            {/* {(isOwner || isCollaborator || user?.roles?.includes("admin")) && ( */}
-              <Button
-               variant="contained" 
-               color="info" onClick={() => router.push(`/chat/${id}`)} sx={{ borderRadius: 2, px: 4 }}>
+            </ActionButton>
+            {(isOwner || isCollaborator || user?.roles?.includes("admin")) && (
+              <ActionButton
+                variant="contained"
+                sx={{ background: 'linear-gradient(90deg, #10b981, #34d399)' }}
+                onClick={() => router.push(`/chat/${id}`)}
+              >
                 Open Chat
-              </Button>
-            {/* )} */}
+              </ActionButton>
+            )}
           </Box>
-        </Box>
+        </MainContainer>
       </Fade>
     </>
   );

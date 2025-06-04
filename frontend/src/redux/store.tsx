@@ -3,6 +3,7 @@ import adminReducer from './adminSlice';
 import notesReducer from './notesSlice';
 import authReducer from './authSlice';
 import chatReducer from './chatSlice';
+import profilReducer from './profileSlice';
 
 export const store = configureStore({
   reducer: {
@@ -10,6 +11,7 @@ export const store = configureStore({
     notes: notesReducer,
     auth: authReducer,
     chat: chatReducer,
+    profile: profilReducer
   },
 });
 

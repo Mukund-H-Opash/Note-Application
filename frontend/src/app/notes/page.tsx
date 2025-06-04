@@ -25,6 +25,7 @@ import {
   DialogTitle,
 } from "@mui/material";
 import { ExpandMore, ExpandLess } from "@mui/icons-material";
+import { styled } from '@mui/material/styles';
 import { fetchNotes, fetchCollaborators, deleteNote } from "@/redux/notesSlice";
 import { checkAuth } from "@/redux/authSlice";
 import Sidebar from "@/components/Sidebar";
@@ -51,7 +52,158 @@ interface User {
   __v: number;
 }
 
-const NotePage = () => {
+// Custom styled components
+const MainContainer = styled(Box)({
+  flexGrow: 1,
+  maxWidth: 1200,
+  margin: '32px auto',
+  padding: '32px',
+  backgroundColor: '#f8fafc',
+  borderRadius: '12px',
+  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
+  fontFamily: "'Inter', sans-serif",
+  minHeight: '80vh',
+});
+
+const TitleTypography = styled(Typography)({
+  fontFamily: "'Poppins', sans-serif",
+  fontWeight: 700,
+  fontSize: '2rem',
+  color: '#1a202c',
+  marginBottom: '24px',
+  letterSpacing: '-0.02em',
+});
+
+const ErrorTypography = styled(Typography)({
+  fontFamily: "'Inter', sans-serif",
+  fontSize: '0.9rem',
+  color: '#dc2626',
+  backgroundColor: '#fef2f2',
+  padding: '12px',
+  borderRadius: '8px',
+  marginBottom: '16px',
+  textAlign: 'center',
+});
+
+const StyledTable = styled(Table)({
+  backgroundColor: '#ffffff',
+  borderRadius: '12px',
+  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
+  overflow: 'hidden',
+  '& .MuiTableCell-head': {
+    fontFamily: "'Inter', sans-serif",
+    fontWeight: 600,
+    color: '#1a202c',
+    backgroundColor: '#f1f5f9',
+    padding: '16px',
+    fontSize: '0.95rem',
+  },
+  '& .MuiTableCell-body': {
+    fontFamily: "'Inter', sans-serif",
+    fontSize: '0.9rem',
+    color: '#2d3748',
+    padding: '16px',
+    borderBottom: '1px solid #e5e7eb',
+    transition: 'background-color 0.2s ease',
+  },
+  '& .MuiTableRow-root:hover': {
+    backgroundColor: '#f1f5f9',
+  },
+});
+
+const ActionButton = styled(Button)(({ theme }) => ({
+  fontFamily: "'Inter', sans-serif",
+  fontWeight: 500,
+  fontSize: '0.85rem',
+  textTransform: 'none',
+  borderRadius: '8px',
+  padding: '8px 16px',
+  transition: 'all 0.3s ease',
+  '&:hover': {
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+    transform: 'translateY(-2px)',
+  },
+}));
+
+const CreateButton = styled(Button)(({ theme }) => ({
+  fontFamily: "'Inter', sans-serif",
+  fontWeight: 600,
+  fontSize: '0.9rem',
+  textTransform: 'none',
+  borderRadius: '8px',
+  padding: '10px 24px',
+  background: 'linear-gradient(90deg, #3b82f6, #60a5fa)',
+  color: '#ffffff',
+  marginBottom: '16px',
+  transition: 'all 0.3s ease',
+  '&:hover': {
+    background: 'linear-gradient(90deg, #2563eb, #3b82f6)',
+    boxShadow: '0 4px 12px rgba(59, 130, 246, 0.5)',
+    transform: 'translateY(-2px)',
+  },
+}));
+
+const StyledChip = styled(Chip)(({ theme }) => ({
+  fontFamily: "'Inter', sans-serif",
+  fontSize: '0.85rem',
+  fontWeight: 500,
+  borderRadius: '6px',
+  backgroundColor: '#dbeafe',
+  color: theme.palette.primary.main,
+  border: 'none',
+  transition: 'all 0.2s ease',
+  '&:hover': {
+    backgroundColor: '#bfdbfe',
+    transform: 'scale(1.05)',
+  },
+}));
+
+const CollapseContent = styled(Box)({
+  backgroundColor: '#ffffff',
+  padding: '24px',
+  borderRadius: '8px',
+  boxShadow: 'inset 0 2px 8px rgba(0, 0, 0, 0.05)',
+});
+
+const SectionTypography = styled(Typography)({
+  fontFamily: "'Poppins', sans-serif",
+  fontWeight: 600,
+  fontSize: '1.25rem',
+  color: '#1a202c',
+  marginBottom: '16px',
+});
+
+const StyledIconButton = styled(IconButton)({
+  color: '#718096',
+  transition: 'color 0.2s ease',
+  '&:hover': {
+    color: '#3b82f6',
+    backgroundColor: '#f1f5f9',
+  },
+});
+
+const StyledDialog = styled(Dialog)({
+  '& .MuiDialog-paper': {
+    borderRadius: '12px',
+    padding: '16px',
+    fontFamily: "'Inter', sans-serif",
+  },
+});
+
+const DialogTitleTypography = styled(Typography)({
+  fontFamily: "'Poppins', sans-serif",
+  fontWeight: 600,
+  fontSize: '1.25rem',
+  color: '#1a202c',
+});
+
+const DialogContentTypography = styled(Typography)({
+  fontFamily: "'Inter', sans-serif",
+  fontSize: '0.95rem',
+  color: '#2d3748',
+});
+
+const NotesListPage = () => {
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
   const { isAuthenticated } = useSelector((state: RootState) => state.auth);
@@ -62,7 +214,6 @@ const NotePage = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [noteToDelete, setNoteToDelete] = useState<string | null>(null);
 
-  // Verify authentication and fetch notes
   useEffect(() => {
     const verifyAuth = async () => {
       await dispatch(checkAuth());
@@ -77,7 +228,6 @@ const NotePage = () => {
     verifyAuth();
   }, [isAuthenticated, dispatch, router, hasFetched]);
 
-  // Fetch collaborators after notes are loaded
   useEffect(() => {
     if (hasFetched && notes.length > 0) {
       const allCollaboratorIds = Array.from(
@@ -125,38 +275,51 @@ const NotePage = () => {
 
   if (loading) {
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
-        <CircularProgress />
+      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", bgcolor: '#f8fafc' }}>
+        <CircularProgress sx={{ color: '#3b82f6' }} />
       </Box>
     );
   }
 
   if (error) {
     return (
-      <Box sx={{ p: 3 }}>
-        <Typography color="error" variant="h6">Error: {error}</Typography>
-        <Button variant="contained" onClick={() => router.push("/dashboard")}>
+      <MainContainer>
+        <ErrorTypography variant="h6">
+          Error: {error}
+        </ErrorTypography>
+        <ActionButton
+          variant="contained"
+          sx={{ background: 'linear-gradient(90deg, #3b82f6, #60a5fa)' }}
+          onClick={() => router.push("/dashboard")}
+        >
           Back to Dashboard
-        </Button>
-      </Box>
+        </ActionButton>
+      </MainContainer>
     );
   }
 
   return (
     <>
+      <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap"
+        rel="stylesheet"
+      />
       <Head>
         <title>Notes</title>
       </Head>
       <Box sx={{ display: "flex" }}>
         <Sidebar />
-        <Box sx={{ flexGrow: 1, maxWidth: 1200, mx: "auto", p: 3 }}>
-          <Typography variant="h4" gutterBottom>
+        <MainContainer>
+          <TitleTypography variant="h4">
             Notes
-          </Typography>
-          <Button variant="contained" color="primary" onClick={handleCreateNote} sx={{ mb: 2 }}>
+          </TitleTypography>
+          <CreateButton
+            variant="contained"
+            onClick={handleCreateNote}
+          >
             Create Note
-          </Button>
-          <Table>
+          </CreateButton>
+          <StyledTable>
             <TableHead>
               <TableRow>
                 <TableCell>Note Title</TableCell>
@@ -184,61 +347,75 @@ const NotePage = () => {
                         <TableCell>{author ? author.username : "Unknown"}</TableCell>
                         <TableCell>{new Date(note.createdAt).toISOString().split("T")[0]}</TableCell>
                         <TableCell>
-                          <Button
+                          <ActionButton
                             variant="outlined"
-                            color="primary"
+                            sx={{
+                              borderColor: '#3b82f6',
+                              color: '#3b82f6',
+                              '&:hover': { borderColor: '#2563eb', color: '#2563eb', backgroundColor: '#f1f5f9' },
+                              mr: 1,
+                            }}
                             onClick={() => handleEditNote(note._id)}
-                            sx={{ mr: 1 }}
                           >
                             Edit
-                          </Button>
-                          <Button
+                          </ActionButton>
+                          <ActionButton
                             variant="outlined"
-                            color="secondary"
+                            sx={{
+                              borderColor: '#6b7280',
+                              color: '#6b7280',
+                              '&:hover': { borderColor: '#4b5563', color: '#4b5563', backgroundColor: '#f1f5f9' },
+                              mr: 1,
+                            }}
                             onClick={() => handleAddCollaborator(note._id)}
-                            sx={{ mr: 1 }}
                           >
                             Add Collaborator
-                          </Button>
-                          <Button
+                          </ActionButton>
+                          <ActionButton
                             variant="outlined"
-                            color="error"
+                            sx={{
+                              borderColor: '#dc2626',
+                              color: '#dc2626',
+                              '&:hover': { borderColor: '#b91c1c', color: '#b91c1c', backgroundColor: '#fef2f2' },
+                            }}
                             onClick={() => handleDeleteNote(note._id)}
                           >
                             Delete
-                          </Button>
+                          </ActionButton>
                         </TableCell>
                         <TableCell>
-                          <IconButton onClick={() => handleExpand(note._id)}>
+                          <StyledIconButton onClick={() => handleExpand(note._id)}>
                             {expandedNoteId === note._id ? <ExpandLess /> : <ExpandMore />}
-                          </IconButton>
+                          </StyledIconButton>
                         </TableCell>
                       </TableRow>
                       <TableRow>
                         <TableCell colSpan={5} sx={{ p: 0 }}>
                           <Collapse in={expandedNoteId === note._id}>
-                            <Box sx={{ p: 2, bgcolor: "background.paper" }}>
-                              <Typography variant="h6" gutterBottom>
+                            <CollapseContent>
+                              <SectionTypography variant="h6">
                                 Content
-                              </Typography>
-                              <Typography variant="body1" sx={{ mb: 2 }}>
+                              </SectionTypography>
+                              <Typography sx={{ fontFamily: "'Inter', sans-serif", fontSize: '0.95rem', color: '#2d3748', mb: 2, lineHeight: 1.6 }}>
                                 {note.content}
                               </Typography>
-                              <Typography variant="h6" gutterBottom>
+                              <SectionTypography variant="h6">
                                 Tags
-                              </Typography>
-                              <Box sx={{ display: "flex", gap: 1, mb: 2 }}>
+                              </SectionTypography>
+                              <Box sx={{ display: "flex", gap: 1, mb: 2, flexWrap: 'wrap' }}>
                                 {note.tags.map((tag) => (
-                                  <Chip key={tag} label={tag} color="primary" variant="outlined" />
+                                  <StyledChip key={tag} label={tag} variant="filled" />
                                 ))}
                               </Box>
-                              <Typography variant="h6" gutterBottom>
+                              <SectionTypography variant="h6">
                                 Collaborators
-                              </Typography>
+                              </SectionTypography>
                               {noteCollaborators.length === 0 ? (
-                                <Typography>No collaborators</Typography>
+                                <Typography sx={{ fontFamily: "'Inter', sans-serif", fontSize: '0.9rem', color: '#718096' }}>
+                                  No collaborators
+                                </Typography>
                               ) : (
-                                <Table size="small">
+                                <StyledTable size="small">
                                   <TableHead>
                                     <TableRow>
                                       <TableCell>Username</TableCell>
@@ -253,9 +430,9 @@ const NotePage = () => {
                                       </TableRow>
                                     ))}
                                   </TableBody>
-                                </Table>
+                                </StyledTable>
                               )}
-                            </Box>
+                            </CollapseContent>
                           </Collapse>
                         </TableCell>
                       </TableRow>
@@ -264,28 +441,42 @@ const NotePage = () => {
                 })
               )}
             </TableBody>
-          </Table>
+          </StyledTable>
 
-          <Dialog open={deleteDialogOpen} onClose={cancelDelete}>
-            <DialogTitle>Confirm Deletion</DialogTitle>
+          <StyledDialog open={deleteDialogOpen} onClose={cancelDelete}>
+            <DialogTitle>
+              <DialogTitleTypography>Confirm Deletion</DialogTitleTypography>
+            </DialogTitle>
             <DialogContent>
-              <DialogContentText>
+              <DialogContentTypography>
                 Are you sure you want to delete this note? This action cannot be undone.
-              </DialogContentText>
+              </DialogContentTypography>
             </DialogContent>
             <DialogActions>
-              <Button onClick={cancelDelete} color="primary">
+              <ActionButton
+                sx={{
+                  color: '#6b7280',
+                  '&:hover': { color: '#4b5563', backgroundColor: '#f1f5f9' },
+                }}
+                onClick={cancelDelete}
+              >
                 Cancel
-              </Button>
-              <Button onClick={confirmDelete} color="error">
+              </ActionButton>
+              <ActionButton
+                sx={{
+                  color: '#dc2626',
+                  '&:hover': { color: '#b91c1c', backgroundColor: '#fef2f2' },
+                }}
+                onClick={confirmDelete}
+              >
                 Delete
-              </Button>
+              </ActionButton>
             </DialogActions>
-          </Dialog>
-        </Box>
+          </StyledDialog>
+        </MainContainer>
       </Box>
     </>
   );
 };
 
-export default NotePage;
+export default NotesListPage;

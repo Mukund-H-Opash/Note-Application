@@ -1,163 +1,276 @@
-// pages/account.tsx
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from "react";
+import Head from "next/head";
+import { useRouter } from "next/navigation";
+import { useSelector, useDispatch } from "react-redux";
+import type { RootState, AppDispatch } from "@/redux/store";
 import {
   Box,
   Typography,
-  TextField,
   Button,
-  FormControl,
-  FormLabel,
-} from '@mui/material';
+  CircularProgress,
+  Avatar,
+  Card,
+  CardContent,
+  Chip,
+  Fade,
+} from "@mui/material";
+import { styled } from '@mui/material/styles';
+import Cookies from 'js-cookie';
+import { checkAuth } from "@/redux/authSlice";
+import { fetchProfile } from "@/redux/profileSlice";
 
-interface UserProfile {
-  name: string;
-  username: string;
-  bio: string;
-  email: string;
-}
+// Custom styled components
+const MainContainer = styled(Box)({
+  maxWidth: 900,
+  margin: '32px auto',
+  padding: '32px',
+  backgroundColor: '#f8fafc',
+  borderRadius: '12px',
+  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
+  fontFamily: "'Inter', sans-serif",
+  minHeight: '80vh',
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'center',
+});
 
-const fetchUserProfile = async (): Promise<UserProfile> => {
-  // Replace with your actual API endpoint to fetch user profile data
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        name: 'John Doe',
-        username: 'johndoe123',
-        bio: 'Software enthusiast',
-        email: 'john.doe@example.com',
-      });
-    }, 200);
-  });
+const ProfileCard = styled(Card)({
+  background: 'linear-gradient(135deg, #ffffff, #f1f5f9)',
+  borderRadius: '16px',
+  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.1)',
+  maxWidth: 600,
+  width: '100%',
+  transition: 'all 0.3s ease',
+  '&:hover': {
+    transform: 'translateY(-4px)',
+    boxShadow: '0 12px 32px rgba(0, 0, 0, 0.15)',
+  },
+});
+
+const TitleTypography = styled(Typography)({
+  fontFamily: "'Poppins', sans-serif",
+  fontWeight: 700,
+  fontSize: '2rem',
+  color: '#1a202c',
+  marginBottom: '16px',
+  textAlign: 'center',
+});
+
+const InfoTypography = styled(Typography)({
+  fontFamily: "'Inter', sans-serif",
+  fontSize: '1rem',
+  color: '#2d3748',
+  marginBottom: '12px',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+});
+
+const ErrorTypography = styled(Typography)({
+  fontFamily: "'Inter', sans-serif",
+  fontSize: '0.9rem',
+  color: '#dc2626',
+  backgroundColor: '#fef2f2',
+  padding: '12px',
+  borderRadius: '8px',
+  marginBottom: '16px',
+  textAlign: 'center',
+});
+
+const ActionButton = styled(Button)(({ theme }) => ({
+  fontFamily: "'Inter', sans-serif",
+  fontWeight: 500,
+  fontSize: '0.9rem',
+  textTransform: 'none',
+  borderRadius: '8px',
+  padding: '10px 24px',
+  transition: 'all 0.3s ease',
+  '&:hover': {
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+    transform: 'translateY(-2px)',
+  },
+}));
+
+const StyledChip = styled(Chip)(({ theme }) => ({
+  fontFamily: "'Inter', sans-serif",
+  fontSize: '0.85rem',
+  fontWeight: 500,
+  borderRadius: '6px',
+  backgroundColor: '#dbeafe',
+  color: theme.palette.primary.main,
+  border: 'none',
+  transition: 'all 0.2s ease',
+  '&:hover': {
+    backgroundColor: '#bfdbfe',
+    transform: 'scale(1.05)',
+  },
+}));
+
+const ProfileAvatar = styled(Avatar)({
+  width: 120,
+  height: 120,
+  margin: '0 auto 16px',
+  fontSize: '3rem',
+  fontWeight: 600,
+  fontFamily: "'Inter', sans-serif",
+  background: 'linear-gradient(45deg, #3b82f6, #ec4899)',
+  border: '4px solid #ffffff',
+  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+  transition: 'all 0.3s ease',
+  '&:hover': {
+    transform: 'scale(1.05)',
+  },
+});
+
+// Utility to generate avatar background color based on username
+const getAvatarColor = (username: string | undefined | null) => {
+  const colors = [
+    'linear-gradient(45deg, #3b82f6, #ec4899)',
+    'linear-gradient(45deg, #10b981, #3b82f6)',
+    'linear-gradient(45deg, #f97316, #ef4444)',
+    'linear-gradient(45deg, #8b5cf6, #d946ef)',
+  ];
+  if (!username || typeof username !== "string" || username.length === 0) {
+    return colors[0];
+  }
+  const index = username.length % colors.length;
+  return colors[index];
 };
 
-interface EmailUpdateResponse {
-  message: string;
-}
-
-const updateUserEmailOnServer = async (newEmail: string): Promise<EmailUpdateResponse> => {
-  // Replace with your actual API endpoint to update the user's email
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      // console.log('Updating email to:', newEmail);
-      // Simulate a successful update
-      resolve({ message: 'Email updated successfully' });
-      // Simulate an error: reject({ message: 'Failed to update email' });
-    }, 300);
-  });
-};
-
-const AccountPage: React.FC = () => {
-  const [profile, setProfile] = useState<UserProfile>({
-    name: '',
-    username: '',
-    bio: '',
-    email: '',
-  });
-  const [newEmail, setNewEmail] = useState('');
-  const [isUpdatingEmail, setIsUpdatingEmail] = useState(false);
-  const [emailUpdateMessage, setEmailUpdateMessage] = useState<string | null>(null);
+const ProfilePage = () => {
+  const dispatch = useDispatch<AppDispatch>();
+  const router = useRouter();
+  const { isAuthenticated } = useSelector((state: RootState) => state.auth);
+  const { profile, loading, error } = useSelector((state: RootState) => state.profile);
 
   useEffect(() => {
-    const loadProfile = async () => {
-      const data = await fetchUserProfile();
-      setProfile(data);
-      setNewEmail(data.email); // Initialize newEmail with the current email
+    const verifyAuthAndFetchProfile = async () => {
+      await dispatch(checkAuth());
+      if (!isAuthenticated) {
+        router.push("/login");
+      } else {
+        await dispatch(fetchProfile());
+      }
     };
 
-    loadProfile();
-  }, []);
+    verifyAuthAndFetchProfile();
+  }, [dispatch, isAuthenticated, router]);
 
-  const handleUpdateEmail = async () => {
-    setIsUpdatingEmail(true);
-    setEmailUpdateMessage(null);
-    try {
-      const result = await updateUserEmailOnServer(newEmail);
-      setEmailUpdateMessage(result.message);
-      // Optionally, update the profile state with the new email
-      setProfile((prevProfile) => ({ ...prevProfile, email: newEmail }));
-    } catch (error: any) {
-      setEmailUpdateMessage(error.message || 'Failed to update email.');
-    } finally {
-      setIsUpdatingEmail(false);
-    }
+  const handleEditProfile = () => {
+    router.push("/profile/edit");
   };
 
+  const handleLogout = async () => {
+    // await dispatch(logout());
+    Cookies.remove('auth');
+    router.push("/login");
+  };
+
+  if (loading) {
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", bgcolor: '#f8fafc' }}>
+        <CircularProgress sx={{ color: '#3b82f6' }} />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <MainContainer>
+        <ErrorTypography>
+          Error: {error}
+        </ErrorTypography>
+        <ActionButton
+          variant="contained"
+          sx={{ background: 'linear-gradient(90deg, #3b82f6, #60a5fa)' }}
+          onClick={() => router.push("/dashboard")}
+        >
+          Back to Dashboard
+        </ActionButton>
+      </MainContainer>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <MainContainer>
+        <ErrorTypography>
+          Profile not found
+        </ErrorTypography>
+        <ActionButton
+          variant="contained"
+          sx={{ background: 'linear-gradient(90deg, #3b82f6, #60a5fa)' }}
+          onClick={() => router.push("/dashboard")}
+        >
+          Back to Dashboard
+        </ActionButton>
+      </MainContainer>
+    );
+  }
+
   return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom>
-        Account
-      </Typography>
-
-      <Typography variant="h6" mt={3} gutterBottom>
-        Profile
-      </Typography>
-      <FormControl fullWidth margin="normal">
-        <FormLabel htmlFor="name">Name</FormLabel>
-        <TextField
-          id="name"
-          value={profile.name}
-          InputProps={{
-            readOnly: true,
-          }}
-        />
-      </FormControl>
-      <FormControl fullWidth margin="normal">
-        <FormLabel htmlFor="username">Username</FormLabel>
-        <TextField
-          id="username"
-          value={profile.username}
-          InputProps={{
-            readOnly: true,
-          }}
-        />
-      </FormControl>
-      <FormControl fullWidth margin="normal">
-        <FormLabel htmlFor="bio">Bio</FormLabel>
-        <TextField
-          id="bio"
-          value={profile.bio}
-          InputProps={{
-            readOnly: true,
-          }}
-          multiline
-          rows={2}
-        />
-      </FormControl>
-
-      <Typography variant="h6" mt={4} gutterBottom>
-        Email
-      </Typography>
-      <FormControl fullWidth margin="normal">
-        <FormLabel htmlFor="email">Email</FormLabel>
-        <TextField
-          id="email"
-          value={newEmail}
-          onChange={(e) => setNewEmail(e.target.value)}
-          variant="outlined"
-          type="email"
-        />
-      </FormControl>
-      <Button
-        variant="contained" 
-        onClick={handleUpdateEmail}
-        disabled={isUpdatingEmail || newEmail === profile.email}
-      >
-        {isUpdatingEmail ? 'Updating Email...' : 'Update Email'}
-      </Button>
-      {emailUpdateMessage && (
-        <Typography mt={1} color={emailUpdateMessage.includes('Failed') ? 'error' : 'success'}>
-          {emailUpdateMessage}
-        </Typography>
-      )}
-
-      <Typography variant="h6" mt={4} gutterBottom>
-        Password
-      </Typography>
-      <Button variant="outlined">Change Password</Button>
-    </Box>
+    <>
+      <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap"
+        rel="stylesheet"
+      />
+      <Head>
+        <title>Profile</title>
+      </Head>
+      <Fade in timeout={500}>
+        <MainContainer>
+          <ProfileCard>
+            <CardContent sx={{ padding: '32px', textAlign: 'center' }}>
+              <ProfileAvatar
+                sx={{ background: getAvatarColor(profile.username) }}
+              >
+                {profile.username ? profile.username[0].toUpperCase() : "?"}
+              </ProfileAvatar>
+              <TitleTypography variant="h4">
+                {profile.username}
+              </TitleTypography>
+              <InfoTypography>
+                <strong>Email:</strong> {profile.email}
+              </InfoTypography>
+              <InfoTypography>
+                <strong>Roles:</strong>
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'center' }}>
+                  {(profile.roles ?? []).map((role) => (
+                    <StyledChip key={role} label={role} variant="filled" />
+                  ))}
+                </Box>
+              </InfoTypography>
+              <InfoTypography>
+                <strong>Joined:</strong> {new Date(profile.createdAt).toLocaleDateString()}
+              </InfoTypography>
+              <Box sx={{ mt: 4, display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
+                <ActionButton
+                  variant="contained"
+                  sx={{ background: 'linear-gradient(90deg, #3b82f6, #60a5fa)' }}
+                  onClick={handleEditProfile}
+                >
+                  Edit Profile
+                </ActionButton>
+                <ActionButton
+                  variant="outlined"
+                  sx={{
+                    borderColor: '#dc2626',
+                    color: '#dc2626',
+                    '&:hover': { borderColor: '#b91c1c', color: '#b91c1c', backgroundColor: '#fef2f2' },
+                  }}
+                  onClick={handleLogout}
+                >
+                  Logout
+                </ActionButton>
+              </Box>
+            </CardContent>
+          </ProfileCard>
+        </MainContainer>
+      </Fade>
+    </>
   );
 };
 
-export default AccountPage;
+export default ProfilePage;

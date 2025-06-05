@@ -13,7 +13,7 @@ interface User {
 }
 
 interface AuthState {
-  token: any;
+  token: string | null;
   username: string;
   email: string;
   password: string;
@@ -21,6 +21,7 @@ interface AuthState {
   user: User | null;
   loading: boolean;
   isAuthenticated: boolean;
+  error: string | null;
 }
 
 const initialState: AuthState = {
@@ -31,7 +32,8 @@ const initialState: AuthState = {
   user: null,
   loading: false,
   isAuthenticated: false,
-  token: undefined
+  token: null,
+  error: null,
 };
 
 const authSlice = createSlice({
@@ -59,15 +61,20 @@ const authSlice = createSlice({
     setIsAuthenticated(state, action: PayloadAction<boolean>) {
       state.isAuthenticated = action.payload;
     },
+    setError(state, action: PayloadAction<string | null>) {
+      state.error = action.payload;
+    },
   },
 });
 
-export const { setUsername, setEmail, setPassword, setRoles, setUser, setLoading, setIsAuthenticated } = authSlice.actions;
+export const { setUsername, setEmail, setPassword, setRoles, setUser, setLoading, setIsAuthenticated, setError } =
+  authSlice.actions;
 
 export const signup = (): AppThunk => async (dispatch, getState) => {
   const { username, email, password, roles } = getState().auth;
 
   dispatch(setLoading(true));
+  dispatch(setError(null));
   try {
     const response = await fetch('http://localhost:5000/auth/signup', {
       method: 'POST',
@@ -83,15 +90,16 @@ export const signup = (): AppThunk => async (dispatch, getState) => {
     });
 
     if (!response.ok) {
-      throw new Error('Signup failed');
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Signup failed');
     }
 
     const data = await response.json();
     dispatch(setUser(data));
     dispatch(setIsAuthenticated(true));
-    // console.log('Signup successful');
   } catch (error) {
-    console.error('Signup error:', (error as Error).message);
+    const errorMessage = (error as Error).message || 'An unexpected error occurred during signup';
+    dispatch(setError(errorMessage));
   } finally {
     dispatch(setLoading(false));
   }
@@ -101,8 +109,8 @@ export const login = (): AppThunk => async (dispatch, getState) => {
   const { email, password } = getState().auth;
 
   dispatch(setLoading(true));
+  dispatch(setError(null));
   try {
-    // Clear existing cookies before saving new token
     Cookies.remove('token');
     Cookies.remove('authData');
     Cookies.remove('prelogin');
@@ -119,12 +127,13 @@ export const login = (): AppThunk => async (dispatch, getState) => {
     });
 
     if (!response.ok) {
-      throw new Error('Login failed');
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Login failed');
     }
 
     const data = await response.json();
     Cookies.set('token', data.token, { expires: 1 });
-    // Fetch user data immediately after login
+
     const userResponse = await fetch('http://localhost:5000/auth/me', {
       method: 'GET',
       headers: {
@@ -138,11 +147,11 @@ export const login = (): AppThunk => async (dispatch, getState) => {
     }
 
     const userData = await userResponse.json();
-    dispatch(setUser(userData)); // Set user data
+    dispatch(setUser(userData));
     dispatch(setIsAuthenticated(true));
-    // console.log('Login successful');
   } catch (error) {
-    console.error('Login error:', (error as Error).message);
+    const errorMessage = (error as Error).message || 'An unexpected error occurred during login';
+    dispatch(setError(errorMessage));
   } finally {
     dispatch(setLoading(false));
   }
@@ -153,11 +162,10 @@ export const handleLogin = (): AppThunk => async (dispatch) => {
   dispatch(login());
 };
 
-export const checkAuth = () => (dispatch: (arg0: { payload: boolean; type: "auth/setIsAuthenticated"; }) => void) => {
+export const checkAuth = () => (dispatch: (arg0: { payload: boolean; type: 'auth/setIsAuthenticated' }) => void) => {
   const token = Cookies.get('token');
   if (token) {
     dispatch(setIsAuthenticated(true));
-    // Optionally fetch user info
   } else {
     dispatch(setIsAuthenticated(false));
   }

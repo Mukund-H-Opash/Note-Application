@@ -106,12 +106,12 @@ export default function Sidebar() {
           >
             Notes
           </NavButton>
-          <NavButton
+          {/* <NavButton
             startIcon={<ChatIcon />}
             onClick={() => router.push('/chat')}
           >
             Chat
-          </NavButton>
+          </NavButton> */}
           <NavButton
             startIcon={<PersonIcon />}
             onClick={() => router.push('/profile')}

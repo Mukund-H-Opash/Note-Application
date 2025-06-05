@@ -159,7 +159,7 @@ const ProfilePage = () => {
   }, [dispatch, isAuthenticated, router]);
 
   const handleEditProfile = () => {
-    router.push("/profile/edit");
+    router.push("/dashboard");
   };
 
   const handleLogout = async () => {
@@ -251,7 +251,7 @@ const ProfilePage = () => {
                   sx={{ background: 'linear-gradient(90deg, #3b82f6, #60a5fa)' }}
                   onClick={handleEditProfile}
                 >
-                  Edit Profile
+                  Back
                 </ActionButton>
                 <ActionButton
                   variant="outlined"

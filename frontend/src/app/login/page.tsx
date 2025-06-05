@@ -8,25 +8,38 @@ import Header from '@/components/Header';
 import Loader from '@/components/Loader';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 export default function LoginPage() {
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
-  const { email, password, loading, isAuthenticated } = useSelector((state: RootState) => state.auth);
+  const { email, password, loading, isAuthenticated, error } = useSelector((state: RootState) => state.auth);
 
-  // Pre-fill email and password on mount
   useEffect(() => {
     dispatch(setEmail('mukund@example.com'));
     dispatch(setPassword('password'));
   }, [dispatch]);
+
+  useEffect(() => {
+    if (error) {
+      toast.error(error, {
+        position: 'top-right',
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+    }
+  }, [error]);
 
   const handleLogin = () => {
     dispatch(login());
   };
 
   const handleCancel = () => {
-    dispatch(setLoading(false)); // Stop the loading state
-    // Optionally reset form fields
+    dispatch(setLoading(false));
     dispatch(setEmail(''));
     dispatch(setPassword(''));
   };
@@ -40,6 +53,7 @@ export default function LoginPage() {
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#f5f7fa' }}>
       <Header />
+      <ToastContainer />
       {loading ? (
         <Box
           sx={{

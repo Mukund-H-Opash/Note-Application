@@ -3,20 +3,44 @@
 import { Box, Typography, TextField, Button, Link, MenuItem, Select, InputLabel, FormControl } from '@mui/material';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '@/redux/store';
-import { setUsername, setEmail, setPassword, setRoles, signup } from '@/redux/authSlice';
+import { setUsername, setEmail, setPassword, setRoles, signup, setLoading } from '@/redux/authSlice';
 import Header from '@/components/Header';
 import Loader from '@/components/Loader';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 export default function Signup() {
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
-  const { username, email, password, roles, loading, isAuthenticated } = useSelector((state: RootState) => state.auth);
+  const { username, email, password, roles, loading, isAuthenticated, error } = useSelector(
+    (state: RootState) => state.auth
+  );
 
   const handleSignup = () => {
-    // Password validation can be moved to backend or handled differently since confirmPassword is removed
     dispatch(signup());
+  };
+
+  useEffect(() => {
+    if (error) {
+      toast.error(error, {
+        position: 'top-right',
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+    }
+  }, [error]);
+
+  const handleCancel = () => {
+    dispatch(setLoading(false));
+    dispatch(setUsername(''));
+    dispatch(setEmail(''));
+    dispatch(setPassword(''));
+    dispatch(setRoles(['User']));
   };
 
   useEffect(() => {
@@ -28,6 +52,7 @@ export default function Signup() {
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#f5f7fa' }}>
       <Header />
+      <ToastContainer />
       {loading ? (
         <Box
           sx={{
@@ -38,9 +63,7 @@ export default function Signup() {
             height: 'calc(100vh - 64px)',
           }}
         >
-          <Loader onCancel={function (): void {
-            throw new Error('Function not implemented.');
-          } } />
+          <Loader onCancel={handleCancel} />
         </Box>
       ) : (
         <Box
@@ -112,7 +135,6 @@ export default function Signup() {
               Roles
             </Typography>
             <FormControl fullWidth sx={{ mb: 4, borderRadius: '10px' }}>
-            
               <Select
                 multiple
                 value={roles}
@@ -127,7 +149,6 @@ export default function Signup() {
               >
                 <MenuItem value="User">User</MenuItem>
                 <MenuItem value="Admin">Admin</MenuItem>
-                {/* Add more roles as needed */}
               </Select>
             </FormControl>
             <Button

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useSelector } from 'react-redux';
 import { Box, Typography } from '@mui/material';
 import type { RootState } from '@/redux/store';
@@ -11,35 +11,12 @@ interface ChatMessageProps {
 }
 
 const ChatMessage: React.FC<ChatMessageProps> = ({ sender, message, timestamp, isCurrentUser }) => {
-  const currentUser = useSelector((state: RootState) => state.auth.user);
-  const [username, setUsername] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (isCurrentUser && currentUser) {
-      setUsername(currentUser.username);
-    } else if (sender !== 'system') {
-      // Fetch username for other users
-      const fetchUsername = async () => {
-        try {
-          const response = await fetch(`http://localhost:5000/users/${sender}`, {
-            headers: {
-              'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
-            },
-          });
-          if (response.ok) {
-            const userData = await response.json();
-            setUsername(userData.username);
-          } else {
-            setUsername('Unknown');
-          }
-        } catch (err) {
-          console.error('Failed to fetch username:', err);
-          setUsername('Unknown');
-        }
-      };
-      fetchUsername();
-    }
-  }, [sender, isCurrentUser, currentUser]);
+  
+  const displayName = isCurrentUser
+    ? "You"
+    : sender === 'system'
+      ? "System"
+      : "User";
 
   return (
     <Box
@@ -61,7 +38,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ sender, message, timestamp, i
         }}
       >
         <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-          {sender === 'system' ? 'System' : username || sender}
+          {displayName}
         </Typography>
         <Typography variant="body1">{message}</Typography>
         <Typography variant="caption" sx={{ opacity: 0.7 }}>

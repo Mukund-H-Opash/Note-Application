@@ -26,14 +26,25 @@ export const fetchProfile = createAsyncThunk(
   'profile/fetchProfile',
   async (_, { rejectWithValue }) => {
     try {
-      const authDataCookie = Cookies.get('authData');
-      if (!authDataCookie) {
-        return rejectWithValue('No authdata cookie found');
+      const token = Cookies.get('token');
+      if (!token) {
+        return rejectWithValue('No token found');
       }
-      const profile = JSON.parse(authDataCookie);
+      const userResponse = await fetch('http://localhost:5000/auth/me', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!userResponse.ok) {
+        const errorData = await userResponse.json();
+        return rejectWithValue(errorData.message || 'Failed to fetch profile');
+      }
+      const profile = await userResponse.json();
       return profile;
     } catch (error: any) {
-      return rejectWithValue('Failed to parse authdata cookie');
+      return rejectWithValue('Failed to fetch profile');
     }
   }
 );

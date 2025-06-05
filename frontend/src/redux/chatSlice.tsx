@@ -49,7 +49,7 @@ const chatSlice = createSlice({
           lastMessage &&
           lastMessage.sender === message.sender &&
           lastMessage.message === message.message &&
-          Math.abs(new Date(lastMessage.timestamp).getTime() - new Date(message.timestamp).getTime()) < 2000 // Increased to 2 seconds
+          Math.abs(new Date(lastMessage.timestamp).getTime() - new Date(message.timestamp).getTime()) < 2000
         ) {
           return;
         }
@@ -75,7 +75,9 @@ export const initializeSocket = (noteId: string, userId: string): AppThunk => as
   const user = auth.user;
   const currentNote = notes.currentNote;
 
-  if (!user) {
+  console.log('Initializing socket with userId:', userId, 'and user:', user); // Debug log
+
+  if (!user || !userId) {
     dispatch(setError('User not authenticated.'));
     return;
   }
@@ -102,6 +104,7 @@ export const initializeSocket = (noteId: string, userId: string): AppThunk => as
     socketInstance = io(SOCKET_URL, {
       reconnectionAttempts: 3,
       timeout: 10000,
+      transports: ['websocket'],
     });
 
     dispatch(setSocket(socketInstance.id || null));
@@ -131,11 +134,13 @@ export const initializeSocket = (noteId: string, userId: string): AppThunk => as
     });
 
     socketInstance.on('newChatMessage', (data) => {
-      console.log('New chat message received:', { sender: data.sender, userId, message: data.message });
-      if (data.sender !== userId) {
-        dispatch(addMessage({ sender: data.sender, message: data.message, timestamp: new Date().toISOString() }));
+      const normalizedSender = String(data.sender);
+      const normalizedUserId = String(userId);
+      console.log('New chat message received:', { sender: normalizedSender, userId: normalizedUserId, message: data.message });
+      if (normalizedSender !== normalizedUserId) {
+        dispatch(addMessage({ sender: normalizedSender, message: data.message, timestamp: new Date().toISOString() }));
       } else {
-        console.log('Skipping message from self:', { sender: data.sender, userId });
+        console.log('Skipping message from self:', { sender: normalizedSender, userId: normalizedUserId });
       }
     });
 
@@ -145,8 +150,8 @@ export const initializeSocket = (noteId: string, userId: string): AppThunk => as
       dispatch(setError('Disconnected from chat server.'));
     });
   } catch (err) {
-    const error = err as Error;
-    console.error('Socket initialization error:', error.message);
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+    console.error('Socket initialization error:', errorMessage);
     dispatch(setError('Failed to initialize chat. Please try again.'));
   }
 };
@@ -161,6 +166,7 @@ export const sendMessage = (noteId: string, message: string, sender: string): Ap
     dispatch(setError(message.trim() ? 'Message too long (max 500 characters)' : 'Cannot send empty message'));
     return;
   }
+  console.log('Sending message with sender:', sender); // Debug log
   socketInstance.emit('sendChatMessage', { noteId, message, sender });
   dispatch(addMessage({ sender, message, timestamp: new Date().toISOString() }));
 };

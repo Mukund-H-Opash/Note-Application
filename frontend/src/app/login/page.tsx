@@ -16,10 +16,7 @@ export default function LoginPage() {
   const router = useRouter();
   const { email, password, loading, isAuthenticated, error } = useSelector((state: RootState) => state.auth);
 
-  useEffect(() => {
-    dispatch(setEmail('mukund@example.com'));
-    dispatch(setPassword('password'));
-  }, [dispatch]);
+
 
   useEffect(() => {
     if (error) {

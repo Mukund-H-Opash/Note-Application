@@ -14,6 +14,12 @@ export default function LoginPage() {
   const router = useRouter();
   const { email, password, loading, isAuthenticated } = useSelector((state: RootState) => state.auth);
 
+  // Pre-fill email and password on mount
+  useEffect(() => {
+    dispatch(setEmail('mukund@example.com'));
+    dispatch(setPassword('password'));
+  }, [dispatch]);
+
   const handleLogin = () => {
     dispatch(login());
   };

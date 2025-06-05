@@ -309,7 +309,7 @@ const NotePage = () => {
             >
               Back to Dashboard
             </ActionButton>
-            {(isOwner || isCollaborator || user?.roles?.includes("admin")) && (
+           
               <ActionButton
                 variant="contained"
                 sx={{ background: 'linear-gradient(90deg, #10b981, #34d399)' }}
@@ -317,7 +317,7 @@ const NotePage = () => {
               >
                 Open Chat
               </ActionButton>
-            )}
+            
           </Box>
         </MainContainer>
       </Fade>

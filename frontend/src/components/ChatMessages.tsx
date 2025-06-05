@@ -1,73 +1,75 @@
-
-"use client";
-
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
+import { Box, Typography } from '@mui/material';
 import type { RootState } from '@/redux/store';
-import {
-  Box,
-  List,
-  ListItem,
-  ListItemText,
-  Paper,
-  Typography,
-} from '@mui/material';
 
-interface ChatMessage {
-  _id: string;
-  noteId: string;
-  sender: {
-    _id: string;
-    username: string;
-    email: string;
-  };
+interface ChatMessageProps {
+  sender: string;
   message: string;
   timestamp: string;
-  __v: number;
+  isCurrentUser: boolean;
 }
 
-const ChatMessages = () => {
-  const { messages } = useSelector((state: RootState) => state.chat);
-  const { user } = useSelector((state: RootState) => state.auth);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+const ChatMessage: React.FC<ChatMessageProps> = ({ sender, message, timestamp, isCurrentUser }) => {
+  const currentUser = useSelector((state: RootState) => state.auth.user);
+  const [username, setUsername] = useState<string | null>(null);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    if (isCurrentUser && currentUser) {
+      setUsername(currentUser.username);
+    } else if (sender !== 'system') {
+      // Fetch username for other users
+      const fetchUsername = async () => {
+        try {
+          const response = await fetch(`http://localhost:5000/users/${sender}`, {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+            },
+          });
+          if (response.ok) {
+            const userData = await response.json();
+            setUsername(userData.username);
+          } else {
+            setUsername('Unknown');
+          }
+        } catch (err) {
+          console.error('Failed to fetch username:', err);
+          setUsername('Unknown');
+        }
+      };
+      fetchUsername();
+    }
+  }, [sender, isCurrentUser, currentUser]);
 
   return (
-    <Paper sx={{ p: 2, flexGrow: 1, overflowY: 'auto', maxHeight: '70vh', bgcolor: 'background.default' }}>
-      <List>
-        {messages.length === 0 ? (
-          <Typography variant="body2" color="text.secondary" align="center">
-            No messages yet. Start the conversation!
-          </Typography>
-        ) : (
-          messages.map((msg) => (
-            <ListItem
-              key={msg._id}
-              sx={{
-                flexDirection: user && msg.sender._id === user._id ? 'row-reverse' : 'row',
-                bgcolor: user && msg.sender._id === user._id ? 'primary.light' : 'grey.100',
-                borderRadius: 2,
-                mb: 1,
-                maxWidth: '75%',
-                alignSelf: user && msg.sender._id === user._id ? 'flex-end' : 'flex-start',
-              }}
-            >
-              <ListItemText
-                primary={msg.message}
-                secondary={`${msg.sender.username} • ${new Date(msg.timestamp).toLocaleTimeString()}`}
-                primaryTypographyProps={{ fontWeight: 'medium' }}
-                secondaryTypographyProps={{ fontSize: '0.75rem' }}
-              />
-            </ListItem>
-          ))
-        )}
-        <div ref={messagesEndRef} />
-      </List>
-    </Paper>
+    <Box
+      sx={{
+        display: 'flex',
+        justifyContent: isCurrentUser ? 'flex-end' : 'flex-start',
+        mb: 2,
+        px: 2,
+      }}
+    >
+      <Box
+        sx={{
+          maxWidth: '70%',
+          p: 1.5,
+          borderRadius: 2,
+          bgcolor: isCurrentUser ? 'primary.main' : sender === 'system' ? 'grey.200' : 'grey.300',
+          color: isCurrentUser ? 'white' : 'text.primary',
+          boxShadow: 1,
+        }}
+      >
+        <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+          {sender === 'system' ? 'System' : username || sender}
+        </Typography>
+        <Typography variant="body1">{message}</Typography>
+        <Typography variant="caption" sx={{ opacity: 0.7 }}>
+          {new Date(timestamp).toLocaleTimeString()}
+        </Typography>
+      </Box>
+    </Box>
   );
 };
 
-export default ChatMessages;
+export default ChatMessage;

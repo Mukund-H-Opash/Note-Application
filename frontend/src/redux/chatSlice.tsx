@@ -1,138 +1,154 @@
-
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { io, Socket } from 'socket.io-client';
 import type { AppThunk } from './store';
-import Cookies from 'js-cookie';
-import { ReactNode } from 'react';
+import io, { Socket } from 'socket.io-client';
+
+const SOCKET_URL = 'http://localhost:5000';
 
 interface ChatMessage {
-  username: any;
-  content: ReactNode;
-  userId: string | undefined;
-  _id: string;
-  noteId: string;
-  sender: {
-    _id: string;
-    username: string;
-    email: string;
-  };
+  sender: string;
   message: string;
   timestamp: string;
-  __v: number;
 }
 
 interface ChatState {
-  socketInstance: any;
   messages: ChatMessage[];
   connected: boolean;
   error: string | null;
-  socket: any; 
+  socketId: string | null;
+  lastSystemMessage: string | null;
 }
 
-
 const initialState: ChatState = {
-  socketInstance: null,
   messages: [],
   connected: false,
   error: null,
-  socket:[] 
+  socketId: null,
+  lastSystemMessage: null,
 };
+
+// Use a ref to track socket instance
+let socketInstance: Socket | null = null;
 
 const chatSlice = createSlice({
   name: 'chat',
   initialState,
   reducers: {
-    connectSocket(state, action: PayloadAction<Socket>) {
-      state.socketInstance = action.payload;
-      state.connected = true;
-      state.error = null;
-    },
-    disconnectSocket(state) {
-      state.socketInstance?.disconnect();
-      state.socketInstance = null;
-      state.connected = false;
-      state.messages = [];
-    },
-    loadMessages(state, action: PayloadAction<ChatMessage[]>) {
+    setMessages(state, action: PayloadAction<ChatMessage[]>) {
       state.messages = action.payload;
     },
-    receiveMessage(state, action: PayloadAction<ChatMessage>) {
-      state.messages.push(action.payload);
+    addMessage(state, action: PayloadAction<ChatMessage>) {
+      const message = action.payload;
+      // Deduplicate system messages
+      if (message.sender === 'system') {
+        if (state.lastSystemMessage === message.message) {
+          return; // Skip duplicate system message
+        }
+        state.lastSystemMessage = message.message;
+      } else {
+        // Deduplicate user messages by checking if the last message matches
+        const lastMessage = state.messages[state.messages.length - 1];
+        if (
+          lastMessage &&
+          lastMessage.sender === message.sender &&
+          lastMessage.message === message.message &&
+          Math.abs(new Date(lastMessage.timestamp).getTime() - new Date(message.timestamp).getTime()) < 1000
+        ) {
+          return; // Skip duplicate message
+        }
+      }
+      state.messages.push(message);
     },
-    setError(state, action: PayloadAction<string>) {
+    setConnected(state, action: PayloadAction<boolean>) {
+      state.connected = action.payload;
+    },
+    setError(state, action: PayloadAction<string | null>) {
       state.error = action.payload;
     },
-    clearMessages(state) {
-      state.messages = [];
+    setSocket(state, action: PayloadAction<string | null>) {
+      state.socketId = action.payload;
     },
   },
 });
 
-export const {
-  connectSocket,
-  disconnectSocket,
-  loadMessages,
-  receiveMessage,
-  setError,
-  clearMessages,
-} = chatSlice.actions;
+export const { setMessages, addMessage, setConnected, setError, setSocket } = chatSlice.actions;
 
-export const initializeChat = (noteId: string): AppThunk => (dispatch) => {
-  const token = Cookies.get('token');
-  if (!token) {
-    dispatch(setError('No token found'));
+export const initializeSocket = (noteId: string, userId: string): AppThunk => async (dispatch) => {
+  if (socketInstance) {
+    console.log('Socket already initialized, reusing instance');
+    dispatch(setSocket(socketInstance?.id || null));
+    dispatch(setConnected(socketInstance.connected));
+    socketInstance.emit('joinNoteRoom', { noteId, userId });
     return;
   }
 
-  const socket = io('http://localhost:5000', {
-    auth: { token },
-    transports: ['websocket'],
-  });
+  try {
+    socketInstance = io(SOCKET_URL, {
+      reconnectionAttempts: 3,
+      timeout: 10000,
+    });
 
-  socket.on('connect', () => {
-    console.log('WebSocket connected:', socket.id);
-    dispatch(connectSocket(socket));
-    socket.emit('joinNoteRoom', { noteId });
-  });
+    dispatch(setSocket(socketInstance.id || null));
 
-  socket.on('joinedNoteRoom', ({ noteId, message }) => {
-    console.log(message);
-  });
+    socketInstance.on('connect', () => {
+      console.log('Socket connected:', socketInstance?.id);
+      dispatch(setConnected(true));
+      dispatch(setError(null));
+      socketInstance?.emit('joinNoteRoom', { noteId, userId });
+    });
 
-  socket.on('loadChatMessages', ({ noteId, messages }) => {
-    dispatch(loadMessages(messages));
-  });
+    socketInstance.on('connect_error', (err) => {
+      console.error('Socket connection error:', err.message);
+      dispatch(setError('Failed to connect to chat server. Please try again later.'));
+      dispatch(setConnected(false));
+    });
 
-  socket.on('newChatMessage', (message: ChatMessage) => {
-    dispatch(receiveMessage(message));
-  });
+    socketInstance.on('joinedNoteRoom', (data) => {
+      console.log('Joined note room:', data);
+      dispatch(addMessage({ sender: 'system', message: data.message, timestamp: new Date().toISOString() }));
+    });
 
-  socket.on('error', ({ message }) => {
-    console.error('WebSocket error:', message);
-    dispatch(setError(message));
-    dispatch(disconnectSocket());
-  });
+    socketInstance.on('newChatMessage', (data) => {
+      console.log('New chat message received:', { data, userId });
+      if (data.sender !== userId) {
+        dispatch(addMessage({ sender: data.sender, message: data.message, timestamp: new Date().toISOString() }));
+      }
+    });
 
-  socket.on('disconnect', () => {
-    console.log('WebSocket disconnected');
-    dispatch(disconnectSocket());
-  });
+    socketInstance.on('disconnect', () => {
+      console.log('Socket disconnected');
+      dispatch(setConnected(false));
+      dispatch(setError('Disconnected from chat server.'));
+    });
+  } catch (err) {
+    const error = err as Error;
+    console.error('Socket initialization error:', error.message);
+    dispatch(setError('Failed to initialize chat. Please try again.'));
+    // Don't throw, let the component handle the error state
+  }
 };
 
-export const sendMessage = (noteId: string, content: string): AppThunk => (dispatch, getState) => {
+export const sendMessage = (noteId: string, message: string, sender: string): AppThunk => async (dispatch, getState) => {
   const { chat } = getState();
-  if (!chat.socketInstance || !chat.connected) {
-    dispatch(setError('Not connected to chat'));
+  if (!chat.connected || !socketInstance) {
+    dispatch(setError('Cannot send message. Not connected to chat server.'));
     return;
   }
-  chat.socketInstance.emit('sendChatMessage', { noteId, message: content });
+  if (!message.trim() || message.length > 500) {
+    dispatch(setError(message.trim() ? 'Message too long (max 500 characters)' : 'Cannot send empty message'));
+    return;
+  }
+  socketInstance.emit('sendChatMessage', { noteId, message, sender });
+  dispatch(addMessage({ sender, message, timestamp: new Date().toISOString() }));
 };
 
-export const leaveChat = (noteId: string): AppThunk => (dispatch, getState) => {
+export const disconnectSocket = (): AppThunk => async (dispatch, getState) => {
   const { chat } = getState();
-  if (chat.socketInstance && chat.connected) {
-    chat.socketInstance.emit('leaveNoteRoom', { noteId });
-    dispatch(disconnectSocket());
+  if (chat.socketId && socketInstance) {
+    socketInstance.disconnect();
+    socketInstance = null;
+    dispatch(setSocket(null));
+    dispatch(setConnected(false));
+    dispatch(setMessages([]));
   }
 };
 

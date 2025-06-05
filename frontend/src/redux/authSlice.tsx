@@ -123,9 +123,22 @@ export const login = (): AppThunk => async (dispatch, getState) => {
     }
 
     const data = await response.json();
-    document.cookie = `authData=${JSON.stringify(data)}; path=/; max-age=3600`;
     Cookies.set('token', data.token, { expires: 1 });
-    dispatch(setUser(data));
+    // Fetch user data immediately after login
+    const userResponse = await fetch('http://localhost:5000/auth/me', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${data.token}`,
+      },
+    });
+
+    if (!userResponse.ok) {
+      throw new Error('Failed to fetch user data');
+    }
+
+    const userData = await userResponse.json();
+    dispatch(setUser(userData)); // Set user data
     dispatch(setIsAuthenticated(true));
     // console.log('Login successful');
   } catch (error) {

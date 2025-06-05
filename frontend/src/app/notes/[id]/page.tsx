@@ -168,11 +168,15 @@ const NotePage = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      await dispatch(checkAuth());
-      if (isAuthenticated && id) {
-        await dispatch(fetchNoteById(id as string));
-      } else {
-        router.push("/login");
+      try {
+        await dispatch(checkAuth());
+        if (isAuthenticated && id) {
+          await dispatch(fetchNoteById(id as string));
+        } else {
+          router.push("/login");
+        }
+      } catch (err) {
+        console.error('Fetch note error:', err);
       }
     };
     fetchData();
@@ -237,6 +241,7 @@ const NotePage = () => {
   const author = users.find((u) => u._id === currentNote.userId);
   const isOwner = user ? currentNote.userId === user._id : false;
   const isCollaborator = user ? currentNote.collaborators.includes(user._id) : false;
+  const canAccessChat = isOwner || isCollaborator;
 
   return (
     <>
@@ -309,7 +314,7 @@ const NotePage = () => {
             >
               Back to Dashboard
             </ActionButton>
-           
+            {canAccessChat && (
               <ActionButton
                 variant="contained"
                 sx={{ background: 'linear-gradient(90deg, #10b981, #34d399)' }}
@@ -317,7 +322,7 @@ const NotePage = () => {
               >
                 Open Chat
               </ActionButton>
-            
+            )}
           </Box>
         </MainContainer>
       </Fade>

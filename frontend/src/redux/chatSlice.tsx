@@ -38,22 +38,20 @@ const chatSlice = createSlice({
     },
     addMessage(state, action: PayloadAction<ChatMessage>) {
       const message = action.payload;
-      // Deduplicate system messages
       if (message.sender === 'system') {
         if (state.lastSystemMessage === message.message) {
-          return; // Skip duplicate system message
+          return;
         }
         state.lastSystemMessage = message.message;
       } else {
-        // Deduplicate user messages by checking if the last message matches
         const lastMessage = state.messages[state.messages.length - 1];
         if (
           lastMessage &&
           lastMessage.sender === message.sender &&
           lastMessage.message === message.message &&
-          Math.abs(new Date(lastMessage.timestamp).getTime() - new Date(message.timestamp).getTime()) < 1000
+          Math.abs(new Date(lastMessage.timestamp).getTime() - new Date(message.timestamp).getTime()) < 2000 // Increased to 2 seconds
         ) {
-          return; // Skip duplicate message
+          return;
         }
       }
       state.messages.push(message);
@@ -72,7 +70,26 @@ const chatSlice = createSlice({
 
 export const { setMessages, addMessage, setConnected, setError, setSocket } = chatSlice.actions;
 
-export const initializeSocket = (noteId: string, userId: string): AppThunk => async (dispatch) => {
+export const initializeSocket = (noteId: string, userId: string): AppThunk => async (dispatch, getState) => {
+  const { auth, notes } = getState();
+  const user = auth.user;
+  const currentNote = notes.currentNote;
+
+  if (!user) {
+    dispatch(setError('User not authenticated.'));
+    return;
+  }
+
+  if (!currentNote) {
+    dispatch(setError('Note not found.'));
+    return;
+  }
+  const isCollaborator = currentNote.collaborators.includes(userId) || currentNote.userId === userId;
+  if (!isCollaborator) {
+    dispatch(setError('You are not a collaborator of this note and cannot join the chat.'));
+    return;
+  }
+
   if (socketInstance) {
     console.log('Socket already initialized, reusing instance');
     dispatch(setSocket(socketInstance?.id || null));
@@ -102,15 +119,23 @@ export const initializeSocket = (noteId: string, userId: string): AppThunk => as
       dispatch(setConnected(false));
     });
 
+    socketInstance.on('error', (data) => {
+      console.error('Server error:', data.message);
+      dispatch(setError(data.message));
+      dispatch(setConnected(false));
+    });
+
     socketInstance.on('joinedNoteRoom', (data) => {
       console.log('Joined note room:', data);
       dispatch(addMessage({ sender: 'system', message: data.message, timestamp: new Date().toISOString() }));
     });
 
     socketInstance.on('newChatMessage', (data) => {
-      console.log('New chat message received:', { data, userId });
+      console.log('New chat message received:', { sender: data.sender, userId, message: data.message });
       if (data.sender !== userId) {
         dispatch(addMessage({ sender: data.sender, message: data.message, timestamp: new Date().toISOString() }));
+      } else {
+        console.log('Skipping message from self:', { sender: data.sender, userId });
       }
     });
 
@@ -123,7 +148,6 @@ export const initializeSocket = (noteId: string, userId: string): AppThunk => as
     const error = err as Error;
     console.error('Socket initialization error:', error.message);
     dispatch(setError('Failed to initialize chat. Please try again.'));
-    // Don't throw, let the component handle the error state
   }
 };
 

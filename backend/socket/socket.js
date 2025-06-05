@@ -4,15 +4,15 @@ module.exports = function(io) {
     console.log('A user connected:', socket.id);
 
     // Join a note room
-    socket.on('joinNoteRoom', ({ noteId }) => {
+    socket.on('joinNoteRoom', ({ noteId, }) => {
       socket.join(noteId);
       socket.emit('joinedNoteRoom', { noteId, message: `Joined room ${noteId}` });
     });
 
-    // Broadcast note content changes to others in the room
-    socket.on('noteContentChange', ({ noteId, content }) => {
-      socket.to(noteId).emit('receiveNoteContentChange', { noteId, content });
-    });
+    // // Broadcast note content changes to others in the room
+    // socket.on('noteContentChange', ({ noteId, content }) => {
+    //   socket.to(noteId).emit('receiveNoteContentChange', { noteId, content });
+    // });
 
     // Broadcast chat messages to others in the room
     socket.on('sendChatMessage', ({ noteId, message }) => {

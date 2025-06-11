@@ -1,3 +1,4 @@
+// backend/models/note.js
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
@@ -26,6 +27,10 @@ const NoteSchema = new Schema({
   tags: {
     type: [String],
     default: [],
+  },
+  readOnly: { // New field for read-only status [new]
+    type: Boolean,
+    default: false,
   },
   createdAt: {
     type: Date,

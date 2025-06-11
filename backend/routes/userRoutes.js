@@ -4,13 +4,9 @@ const router = express.Router();
 const User = require('../models/User');
 const authMiddleware = require('../middleware/authMiddleware');
 
-router.get('/all', authMiddleware, async (req, res) => {
-    try {
-        const users = await User.find().select('username email'); // Fetch only necessary fields for collaboration
-        res.json(users);
-    } catch (error) {
-        res.status(500).json({ message: "Server error", error: error.message });
-    }
-});
+const {getallusers, getuserbyid } = require("../controllers/userController");
+
+router.get('/', authMiddleware, getallusers);
+router.get('/:id', authMiddleware, getuserbyid);
 
 module.exports = router;

@@ -1,7 +1,7 @@
 // frontend/src/app/notes/[id]/page.tsx
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import Head from "next/head";
 import { useRouter, useParams } from "next/navigation";
 import { useSelector, useDispatch } from "react-redux";
@@ -20,12 +20,14 @@ import {
   Fade,
 } from "@mui/material";
 import { styled } from '@mui/material/styles';
-import { fetchNoteById, fetchCollaborators } from "@/redux/notesSlice";
-// import { checkAuth } from "@/redux/authSlice"; // No longer needed here
+import { fetchNoteById, fetchCollaborators, toggleNoteReadOnly } from "@/redux/notesSlice";
+import { initializeSocket, disconnectSocket, emitTypingNote, emitStoppedTypingNote } from '@/redux/chatSlice';
+import Loader from "@/components/Loader"; 
+
 
 interface Note {
   _id: string;
-  userId: { // Updated type for populated userId/page.tsx]
+  userId: {
     _id: string;
     username: string;
     email: string;
@@ -34,6 +36,7 @@ interface Note {
   title: string;
   content: string;
   tags: string[];
+  readOnly: boolean;
   createdAt: string;
   updatedAt: string;
   __v: number;
@@ -169,15 +172,17 @@ const NotePage = () => {
   const { id } = useParams();
   const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
   const { currentNote, collaborators, loading, error } = useSelector((state: RootState) => state.notes);
-  // const users = useSelector((state: RootState) => state.admin.users); // No longer needed
+  const { activeNoteUsers } = useSelector((state: RootState) => state.chat);
+
+  const [isTyping, setIsTyping] = useState(false);
+  const typingTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // await dispatch(checkAuth()); // Removed checkAuth call/page.tsx]
         if (isAuthenticated && id) {
           await dispatch(fetchNoteById(id as string));
-        } else if (!isAuthenticated) { // Only redirect if not authenticated after initial check/page.tsx]
+        } else if (!isAuthenticated) {
           router.push("/login");
         }
       } catch (err) {
@@ -193,6 +198,36 @@ const NotePage = () => {
     }
   }, [currentNote, dispatch]);
 
+  useEffect(() => {
+    if (currentNote && user) {
+      dispatch(initializeSocket(currentNote._id, user._id, user.username));
+    }
+
+    return () => {
+      dispatch(disconnectSocket());
+    };
+  }, [currentNote, user, dispatch]);
+
+
+  const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    if (currentNote && user) {
+      if (!isTyping) {
+        dispatch(emitTypingNote(currentNote._id, user._id));
+        setIsTyping(true);
+      }
+
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+
+      typingTimeoutRef.current = setTimeout(() => {
+        dispatch(emitStoppedTypingNote(currentNote._id, user._id));
+        setIsTyping(false);
+      }, 1500); // Stop typing after 1.5 seconds of inactivity
+    }
+  };
+
+
   const handleBack = () => {
     router.push("/dashboard");
   };
@@ -201,10 +236,17 @@ const NotePage = () => {
     router.push(`/notes/edit/${id}`);
   };
 
+  const handleToggleReadOnly = async () => {
+    if (currentNote && user && currentNote.userId._id === user._id) {
+      await dispatch(toggleNoteReadOnly(currentNote._id, !currentNote.readOnly));
+    }
+  };
+
+
   if (loading) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", bgcolor: '#f8fafc' }}>
-        <CircularProgress sx={{ color: '#3b82f6' }} />
+        <Loader /> {/* Replaced CircularProgress with custom Loader [modified] */}
       </Box>
     );
   }
@@ -243,10 +285,11 @@ const NotePage = () => {
     );
   }
 
-  // const author = users.find((u) => u._id === currentNote.userId); // No longer needed
-  const isOwner = user ? currentNote.userId._id === user._id : false; // Access _id from populated object/page.tsx]
+  const isOwner = user ? currentNote.userId._id === user._id : false;
   const isCollaborator = user ? currentNote.collaborators.includes(user._id) : false;
   const canAccessChat = isOwner || isCollaborator;
+
+  const otherActiveUsers = activeNoteUsers.filter(activeUser => activeUser.userId !== user?._id);
 
   return (
     <>
@@ -264,17 +307,20 @@ const NotePage = () => {
               <TitleTypography variant="h4">
                 {currentNote.title}
               </TitleTypography>
-              <ContentTypography variant="body1">
+              <ContentTypography variant="body1" onInput={handleContentChange}>
                 {currentNote.content}
               </ContentTypography>
               <MetaTypography variant="body2">
-                Author: {currentNote.userId.username} {/* Direct access to username */}/page.tsx]
+                Author: {currentNote.userId.username}
               </MetaTypography>
               <MetaTypography variant="body2">
                 Created: {new Date(currentNote.createdAt).toISOString().split("T")[0]}
               </MetaTypography>
               <MetaTypography variant="body2">
                 Updated: {new Date(currentNote.updatedAt).toISOString().split("T")[0]}
+              </MetaTypography>
+              <MetaTypography variant="body2">
+                Status: {currentNote.readOnly ? 'Read-Only' : 'Editable'}
               </MetaTypography>
               <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mt: 2, mb: 2 }}>
                 {currentNote.tags.map((tag) => (
@@ -304,6 +350,25 @@ const NotePage = () => {
             </StyledList>
           )}
 
+          {otherActiveUsers.length > 0 && (
+            <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.100', borderRadius: '8px' }}>
+              <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
+                Live on this note:
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                {otherActiveUsers.map(activeUser => (
+                  <Chip
+                    key={activeUser.userId}
+                    label={`${activeUser.username} ${activeUser.isTyping ? '(typing...)' : '(viewing)'}`}
+                    variant="outlined"
+                    size="small"
+                    color={activeUser.isTyping ? 'primary' : 'default'}
+                  />
+                ))}
+              </Box>
+            </Box>
+          )}
+
           <Box sx={{ mt: 4, display: "flex", gap: 2, flexWrap: 'wrap' }}>
             <ActionButton
               variant="contained"
@@ -312,6 +377,23 @@ const NotePage = () => {
             >
               Edit Note
             </ActionButton>
+            {isOwner && (
+              <ActionButton
+                variant="outlined"
+                sx={{
+                  borderColor: currentNote.readOnly ? '#10b981' : '#f97316',
+                  color: currentNote.readOnly ? '#10b981' : '#f97316',
+                  '&:hover': {
+                    borderColor: currentNote.readOnly ? '#059669' : '#ea580c',
+                    color: currentNote.readOnly ? '#059669' : '#ea580c',
+                    backgroundColor: currentNote.readOnly ? '#d1fae5' : '#fff7ed',
+                  },
+                }}
+                onClick={handleToggleReadOnly}
+              >
+                {currentNote.readOnly ? 'Make Editable' : 'Make Read-Only'}
+              </ActionButton>
+            )}
             <ActionButton
               variant="contained"
               sx={{ background: 'linear-gradient(90deg, #6b7280, #9ca3af)' }}

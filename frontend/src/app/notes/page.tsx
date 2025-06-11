@@ -29,6 +29,7 @@ import { ExpandMore, ExpandLess } from "@mui/icons-material";
 import { styled } from '@mui/material/styles';
 import { fetchNotes, fetchCollaborators, deleteNote } from "@/redux/notesSlice";
 import Sidebar from "@/components/Sidebar";
+import Loader from "@/components/Loader";
 
 interface Note {
   _id: string;
@@ -41,6 +42,7 @@ interface Note {
   title: string;
   content: string;
   tags: string[];
+  readOnly: boolean;
   createdAt: string;
   updatedAt: string;
   __v: number;
@@ -210,7 +212,7 @@ const DialogContentTypography = styled(Typography)({
 const NotesListPage = () => {
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
-  const { isAuthenticated, user } = useSelector((state: RootState) => state.auth); // Get user object
+  const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
   const { notes, collaborators, loading, error } = useSelector((state: RootState) => state.notes);
   const users = useSelector((state: RootState) => state.admin.users);
   const [expandedNoteId, setExpandedNoteId] = useState<string | null>(null);
@@ -218,7 +220,7 @@ const NotesListPage = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [noteToDelete, setNoteToDelete] = useState<string | null>(null);
 
-  const isAdmin = user?.roles?.includes("Admin"); // Check if user is Admin
+  const isAdmin = user?.roles?.includes("Admin");
 
   useEffect(() => {
     const verifyAuth = async () => {
@@ -278,30 +280,9 @@ const NotesListPage = () => {
     setNoteToDelete(null);
   };
 
-  if (loading) {
-    return (
-      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", bgcolor: '#f8fafc' }}>
-        <CircularProgress sx={{ color: '#3b82f6' }} />
-      </Box>
-    );
-  }
-
-  if (error) {
-    return (
-      <MainContainer>
-        <ErrorTypography variant="h6">
-          Error: {error}
-        </ErrorTypography>
-        <ActionButton
-          variant="contained"
-          sx={{ background: 'linear-gradient(90deg, #3b82f6, #60a5fa)' }}
-          onClick={() => router.push("/dashboard")}
-        >
-          Back to Dashboard
-        </ActionButton>
-      </MainContainer>
-    );
-  }
+  // Removed the full-page loading and error checks here, they will be inside MainContainer [modified]
+  // if (loading) { ... }
+  // if (error) { ... }
 
   return (
     <>
@@ -312,8 +293,8 @@ const NotesListPage = () => {
       <Head>
         <title>Notes</title>
       </Head>
-      <Box sx={{ display: "flex" }}>
-        <Sidebar />
+      <Box sx={{ display: "flex" }}> {/* This flex container ensures Sidebar and MainContainer sit side-by-side */}
+        <Sidebar /> {/* Sidebar is now always rendered */}
         <MainContainer>
           <TitleTypography variant="h4">
             Notes
@@ -324,131 +305,149 @@ const NotesListPage = () => {
           >
             Create Note
           </CreateButton>
-          <StyledTable>
-            <TableHead>
-              <TableRow>
-                <TableCell>Note Title</TableCell>
-                <TableCell>Author</TableCell>
-                <TableCell>Created At</TableCell>
-                <TableCell>Actions</TableCell>
-                <TableCell>Details</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {notes.length === 0 ? (
+
+          {loading ? ( // Conditionally render Loader if notes are loading [new]
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '300px', width: '100%' }}>
+              <Loader />
+            </Box>
+          ) : error ? ( // Display error if there's an error after loading [new]
+            <ErrorTypography variant="h6">
+              Error: {error}
+              <ActionButton
+                variant="contained"
+                sx={{ background: 'linear-gradient(90deg, #3b82f6, #60a5fa)', mt: 2 }}
+                onClick={() => router.push("/dashboard")}
+              >
+                Back to Dashboard
+              </ActionButton>
+            </ErrorTypography>
+          ) : ( // Otherwise, display the notes table [new]
+            <StyledTable>
+              <TableHead>
                 <TableRow>
-                  <TableCell colSpan={5}>No notes available</TableCell>
+                  <TableCell>Note Title</TableCell>
+                  <TableCell>Author</TableCell>
+                  <TableCell>Created At</TableCell>
+                  <TableCell>Actions</TableCell>
+                  <TableCell>Details</TableCell>
                 </TableRow>
-              ) : (
-                notes.map((note) => {
-                  const noteCollaborators = collaborators.filter((user) =>
-                    note.collaborators.includes(user._id)
-                  );
-                  const isNoteOwner = user?._id === note.userId._id; // Check if current user is note owner
-                  return (
-                    <React.Fragment key={note._id}>
-                      <TableRow>
-                        <TableCell>{note.title}</TableCell>
-                        <TableCell>{note.userId.username}</TableCell>
-                        <TableCell>{new Date(note.createdAt).toISOString().split("T")[0]}</TableCell>
-                        <TableCell>
-                          <ActionButton
-                            variant="outlined"
-                            sx={{
-                              borderColor: '#3b82f6',
-                              color: '#3b82f6',
-                              '&:hover': { borderColor: '#2563eb', color: '#2563eb', backgroundColor: '#f1f5f9' },
-                              mr: 1,
-                            }}
-                            onClick={() => handleEditNote(note._id)}
-                          >
-                            Edit
-                          </ActionButton>
-                          {(isAdmin || isNoteOwner) && ( // Only show Add Collaborator if Admin or Note Owner
+              </TableHead>
+              <TableBody>
+                {notes.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5}>No notes available</TableCell>
+                  </TableRow>
+                ) : (
+                  notes.map((note) => {
+                    const noteCollaborators = collaborators.filter((user) =>
+                      note.collaborators.includes(user._id)
+                    );
+                    const isNoteOwner = user?._id === note.userId._id;
+                    return (
+                      <React.Fragment key={note._id}>
+                        <TableRow>
+                          <TableCell>{note.title}</TableCell>
+                          <TableCell>{note.userId.username}</TableCell>
+                          <TableCell>{new Date(note.createdAt).toISOString().split("T")[0]}</TableCell>
+                          <TableCell>
                             <ActionButton
                               variant="outlined"
                               sx={{
-                                borderColor: '#6b7280',
-                                color: '#6b7280',
-                                '&:hover': { borderColor: '#4b5563', color: '#4b5563', backgroundColor: '#f1f5f9' },
+                                borderColor: '#3b82f6',
+                                color: '#3b82f6',
+                                '&:hover': { borderColor: '#2563eb', color: '#2563eb', backgroundColor: '#f1f5f9' },
                                 mr: 1,
                               }}
-                              onClick={() => handleAddCollaborator(note._id)}
+                              onClick={() => handleEditNote(note._id)}
                             >
-                              Add Collaborator
+                              Edit
                             </ActionButton>
-                          )}
-                          <ActionButton
-                            variant="outlined"
-                            sx={{
-                              borderColor: '#dc2626',
-                              color: '#dc2626',
-                              '&:hover': { borderColor: '#b91c1c', color: '#b91c1c', backgroundColor: '#fef2f2' },
-                            }}
-                            onClick={() => handleDeleteNote(note._id)}
-                          >
-                            Delete
-                          </ActionButton>
-                        </TableCell>
-                        <TableCell>
-                          <StyledIconButton onClick={() => handleExpand(note._id)}>
-                            {expandedNoteId === note._id ? <ExpandLess /> : <ExpandMore />}
-                          </StyledIconButton>
-                        </TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell colSpan={5} sx={{ p: 0 }}>
-                          <Collapse in={expandedNoteId === note._id}>
-                            <CollapseContent>
-                              <SectionTypography variant="h6">
-                                Content
-                              </SectionTypography>
-                              <Typography sx={{ fontFamily: "'Inter', sans-serif", fontSize: '0.95rem', color: '#2d3748', mb: 2, lineHeight: 1.6 }}>
-                                {note.content}
-                              </Typography>
-                              <SectionTypography variant="h6">
-                                Tags
-                              </SectionTypography>
-                              <Box sx={{ display: "flex", gap: 1, mb: 2, flexWrap: 'wrap' }}>
-                                {note.tags.map((tag) => (
-                                  <StyledChip key={tag} label={tag} variant="filled" />
-                                ))}
-                              </Box>
-                              <SectionTypography variant="h6">
-                                Collaborators
-                              </SectionTypography>
-                              {noteCollaborators.length === 0 ? (
-                                <Typography sx={{ fontFamily: "'Inter', sans-serif", fontSize: '0.9rem', color: '#718096' }}>
-                                  No collaborators
+                            {(isAdmin || isNoteOwner) && (
+                              <ActionButton
+                                variant="outlined"
+                                sx={{
+                                  borderColor: '#6b7280',
+                                  color: '#6b7280',
+                                  '&:hover': { borderColor: '#4b5563', color: '#4b5563', backgroundColor: '#f1f5f9' },
+                                  mr: 1,
+                                }}
+                                onClick={() => handleAddCollaborator(note._id)}
+                              >
+                                Add Collaborator
+                              </ActionButton>
+                            )}
+                            <ActionButton
+                              variant="outlined"
+                              sx={{
+                                borderColor: '#dc2626',
+                                color: '#dc2626',
+                                '&:hover': { borderColor: '#b91c1c', color: '#b91c1c', backgroundColor: '#fef2f2' },
+                              }}
+                              onClick={() => handleDeleteNote(note._id)}
+                            >
+                              Delete
+                            </ActionButton>
+                          </TableCell>
+                          <TableCell>
+                            <StyledIconButton onClick={() => handleExpand(note._id)}>
+                              {expandedNoteId === note._id ? <ExpandLess /> : <ExpandMore />}
+                            </StyledIconButton>
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell colSpan={5} sx={{ p: 0 }}>
+                            <Collapse in={expandedNoteId === note._id}>
+                              <CollapseContent>
+                                <SectionTypography variant="h6">
+                                  Content
+                                </SectionTypography>
+                                <Typography sx={{ fontFamily: "'Inter', sans-serif", fontSize: '0.95rem', color: '#2d3748', mb: 2, lineHeight: 1.6 }}>
+                                  {note.content}
                                 </Typography>
-                              ) : (
-                                <StyledTable size="small">
-                                  <TableHead>
-                                    <TableRow>
-                                      <TableCell>Username</TableCell>
-                                      <TableCell>Email</TableCell>
-                                    </TableRow>
-                                  </TableHead>
-                                  <TableBody>
-                                    {noteCollaborators.map((user) => (
-                                      <TableRow key={user._id}>
-                                        <TableCell>{user.username}</TableCell>
-                                        <TableCell>{user.email}</TableCell>
+                                <SectionTypography variant="h6">
+                                  Tags
+                                </SectionTypography>
+                                <Box sx={{ display: "flex", gap: 1, mb: 2, flexWrap: 'wrap' }}>
+                                  {note.tags.map((tag) => (
+                                    <StyledChip key={tag} label={tag} variant="filled" />
+                                  ))}
+                                </Box>
+                                <SectionTypography variant="h6">
+                                  Collaborators
+                                </SectionTypography>
+                                {noteCollaborators.length === 0 ? (
+                                  <Typography sx={{ fontFamily: "'Inter', sans-serif", fontSize: '0.9rem', color: '#718096' }}>
+                                    No collaborators
+                                  </Typography>
+                                ) : (
+                                  <StyledTable size="small">
+                                    <TableHead>
+                                      <TableRow>
+                                        <TableCell>Username</TableCell>
+                                        <TableCell>Email</TableCell>
                                       </TableRow>
-                                    ))}
-                                  </TableBody>
-                                </StyledTable>
-                              )}
-                            </CollapseContent>
-                          </Collapse>
-                        </TableCell>
-                      </TableRow>
-                    </React.Fragment>
-                  );
-                })
-              )}
-            </TableBody>
-          </StyledTable>
+                                    </TableHead>
+                                    <TableBody>
+                                      {noteCollaborators.map((user) => (
+                                        <TableRow key={user._id}>
+                                          <TableCell>{user.username}</TableCell>
+                                          <TableCell>{user.email}</TableCell>
+                                        </TableRow>
+                                      ))}
+                                    </TableBody>
+                                  </StyledTable>
+                                )}
+                              </CollapseContent>
+                            </Collapse>
+                          </TableCell>
+                        </TableRow>
+                      </React.Fragment>
+                    );
+                  })
+                )}
+              </TableBody>
+            </StyledTable>
+          )}
 
           <StyledDialog open={deleteDialogOpen} onClose={cancelDelete}>
             <DialogTitle>

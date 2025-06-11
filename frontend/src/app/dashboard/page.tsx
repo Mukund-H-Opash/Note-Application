@@ -1,3 +1,4 @@
+// frontend/src/app/dashboard/page.tsx
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -19,7 +20,8 @@ import { styled } from '@mui/material/styles';
 import type { RootState, AppDispatch } from "@/redux/store";
 import { fetchUsers } from "@/redux/adminSlice";
 import { fetchNotes } from "@/redux/notesSlice";
-import Cookies from "js-cookie";
+import Loader from "@/components/Loader"; // Import the custom Loader [new]
+
 
 interface User {
   _id: string;
@@ -42,6 +44,7 @@ interface Note {
   title: string;
   content: string;
   tags: string[];
+  readOnly: boolean; // Add readOnly to the interface [modified]
   createdAt: string;
   updatedAt: string;
   __v: number;
@@ -130,26 +133,16 @@ const Dashboard = () => {
   const users = useSelector((state: RootState) => state.admin.users);
   const adminError = useSelector((state: RootState) => state.admin.error);
   const notes = useSelector((state: RootState) => state.notes.notes);
+  const notesLoading = useSelector((state: RootState) => state.notes.loading); // Get specific loading states [new]
+  const adminLoading = useSelector((state: RootState) => state.admin.loading);
   const notesError = useSelector((state: RootState) => state.notes.error);
 
-  const [hasMounted, setHasMounted] = useState(false);
-
   useEffect(() => {
-    setHasMounted(true);
-    const token = Cookies.get('token');
-    if (isAuthenticated && token) {
+    if (isAuthenticated) {
       dispatch(fetchUsers());
       dispatch(fetchNotes());
-    } else if (!token) {
-      router.push("/login");
     }
-  }, [dispatch, isAuthenticated, router]);
-
-  useEffect(() => {
-    if (hasMounted && !isAuthenticated) {
-      router.push("/login");
-    }
-  }, [isAuthenticated, hasMounted, router]);
+  }, [dispatch, isAuthenticated]);
 
   const handleNoteClick = (id: string) => {
     router.push(`/notes/${id}`);
@@ -157,12 +150,8 @@ const Dashboard = () => {
 
   const isAdmin = user?.roles?.includes("Admin");
 
-  if (!hasMounted) {
-    return (
-      <Box sx={{ display: "flex", justifyContent: "center", mt: 10, bgcolor: '#f8fafc' }}>
-        <CircularProgress sx={{ color: '#3b82f6' }} />
-      </Box>
-    );
+  if (!isAuthenticated) {
+    return null;
   }
 
   return (
@@ -171,8 +160,8 @@ const Dashboard = () => {
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap"
         rel="stylesheet"
       />
-      <Box sx={{ display: "flex" }}>
-        <Sidebar />
+      <Box sx={{ display: "flex" }}> {/* This flex container ensures Sidebar and MainContainer sit side-by-side */}
+        <Sidebar /> {/* Sidebar is now always rendered */}
         <MainContainer>
           <TitleTypography variant="h4">
             {isAdmin ? "Admin Panel" : "User Panel"}
@@ -189,73 +178,84 @@ const Dashboard = () => {
               <SectionTypography variant="h6">
                 User Management
               </SectionTypography>
-              <StyledTable>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>User</TableCell>
-                    <TableCell>Email</TableCell>
-                    <TableCell>Notes Count</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {users.length === 0 ? (
+              {adminLoading ? ( // Show loader for admin users table [new]
+                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '150px' }}>
+                  <Loader />
+                </Box>
+              ) : (
+                <StyledTable>
+                  <TableHead>
                     <TableRow>
-                      <TableCell colSpan={3}>No users available</TableCell>
+                      <TableCell>User</TableCell>
+                      <TableCell>Email</TableCell>
+                      <TableCell>Notes Count</TableCell>
                     </TableRow>
-                  ) : (
-                    users.map((user: User) => (
-                      <TableRow key={user._id}>
-                        <TableCell>{user.username}</TableCell>
-                        <TableCell>{user.email}</TableCell>
-                        <TableCell>
-                          {notes.filter((note: Note) => note.userId._id === user._id).length}
-                        </TableCell>
+                  </TableHead>
+                  <TableBody>
+                    {users.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={3}>No users available</TableCell>
                       </TableRow>
-                    )))
-                  }
-                </TableBody>
-              </StyledTable>
+                    ) : (
+                      users.map((user: User) => (
+                        <TableRow key={user._id}>
+                          <TableCell>{user.username}</TableCell>
+                          <TableCell>{user.email}</TableCell>
+                          <TableCell>
+                            {notes.filter((note: Note) => note.userId._id === user._id).length}
+                          </TableCell>
+                        </TableRow>
+                      )))
+                    }
+                  </TableBody>
+                </StyledTable>
+              )}
             </>
           )}
 
           <SectionTypography variant="h6">
             Note Management
           </SectionTypography>
-          <StyledTable>
-            <TableHead>
-              <TableRow>
-                <TableCell>Note Title</TableCell>
-                <TableCell>Author</TableCell>
-                <TableCell>Created At</TableCell>
-                <TableCell>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {notes.length === 0 ? (
+          {notesLoading ? ( // Show loader for notes table [new]
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '150px' }}>
+              <Loader />
+            </Box>
+          ) : (
+            <StyledTable>
+              <TableHead>
                 <TableRow>
-                  <TableCell colSpan={4}>No notes available</TableCell>
+                  <TableCell>Note Title</TableCell>
+                  <TableCell>Author</TableCell>
+                  <TableCell>Created At</TableCell>
+                  <TableCell>Actions</TableCell>
                 </TableRow>
-              ) : (
-                notes.map((note: Note) => {
-                  const author = users.find((user: User) => user._id === note.userId._id);
-                  return (
-                    <TableRow key={note._id}>
-                      <TableCell>{note.title}</TableCell>
-                      <TableCell>{author ? author.username : "Unknown"}</TableCell>
-                      <TableCell>
-                        {new Date(note.createdAt).toISOString().split("T")[0]}
-                      </TableCell>
-                      <TableCell>
-                        <ActionButton onClick={() => handleNoteClick(note._id)}>
-                          View
-                        </ActionButton>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </StyledTable>
+              </TableHead>
+              <TableBody>
+                {notes.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4}>No notes available</TableCell>
+                  </TableRow>
+                ) : (
+                  notes.map((note: Note) => {
+                    return (
+                      <TableRow key={note._id}>
+                        <TableCell>{note.title}</TableCell>
+                        <TableCell>{note.userId.username}</TableCell>
+                        <TableCell>
+                          {new Date(note.createdAt).toISOString().split("T")[0]}
+                        </TableCell>
+                        <TableCell>
+                          <ActionButton onClick={() => handleNoteClick(note._id)}>
+                            View
+                          </ActionButton>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </StyledTable>
+          )}
         </MainContainer>
       </Box>
     </>

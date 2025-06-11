@@ -290,7 +290,9 @@ const CreateNotePage = () => {
               </li>
             )}
           />
+          
           <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+
             <ActionButton
               type="submit"
               variant="contained"

@@ -1,6 +1,9 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import type { AppThunk } from './store';
 import Cookies from 'js-cookie';
+import { useEffect } from 'react';
+import { useRouter } from 'next/router';
+import { useSelector } from 'react-redux';
 
 interface User {
   _id: string;
@@ -22,6 +25,7 @@ interface AuthState {
   loading: boolean;
   isAuthenticated: boolean;
   error: string | null;
+  signupSuccess: boolean;
 }
 
 const initialState: AuthState = {
@@ -34,6 +38,7 @@ const initialState: AuthState = {
   isAuthenticated: false,
   token: null,
   error: null,
+  signupSuccess: false,
 };
 
 const authSlice = createSlice({
@@ -64,10 +69,13 @@ const authSlice = createSlice({
     setError(state, action: PayloadAction<string | null>) {
       state.error = action.payload;
     },
+    setSignupSuccess(state, action: PayloadAction<boolean>) {
+      state.signupSuccess = action.payload;
+    },
   },
 });
 
-export const { setUsername, setEmail, setPassword, setRoles, setUser, setLoading, setIsAuthenticated, setError } =
+export const { setUsername, setEmail, setPassword, setRoles, setUser, setLoading, setIsAuthenticated, setError, setSignupSuccess } =
   authSlice.actions;
 
 export const signup = (): AppThunk => async (dispatch, getState) => {
@@ -96,7 +104,7 @@ export const signup = (): AppThunk => async (dispatch, getState) => {
 
     const data = await response.json();
     dispatch(setUser(data));
-    dispatch(setIsAuthenticated(true));
+    dispatch(setSignupSuccess(true));
   } catch (error) {
     const errorMessage = (error as Error).message || 'An unexpected error occurred during signup';
     dispatch(setError(errorMessage));
@@ -162,13 +170,36 @@ export const handleLogin = (): AppThunk => async (dispatch) => {
   dispatch(login());
 };
 
-export const checkAuth = () => (dispatch: (arg0: { payload: boolean; type: 'auth/setIsAuthenticated' }) => void) => {
+export const checkAuth = (): AppThunk => async (dispatch) => {
   const token = Cookies.get('token');
-  if (token) {
+  if (!token) {
+    dispatch(setIsAuthenticated(false));
+    return;
+  }
+
+  try {
+    const response = await fetch('http://localhost:5000/auth/me', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      Cookies.remove('token');
+      dispatch(setIsAuthenticated(false));
+      return;
+    }
+
+    const userData = await response.json();
+    dispatch(setUser(userData));
     dispatch(setIsAuthenticated(true));
-  } else {
+  } catch (error) {
+    Cookies.remove('token');
     dispatch(setIsAuthenticated(false));
   }
 };
 
 export default authSlice.reducer;
+

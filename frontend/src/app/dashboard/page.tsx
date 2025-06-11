@@ -151,6 +151,8 @@ const Dashboard = () => {
     router.push(`/notes/${id}`);
   };
 
+  const isAdmin = user?.roles?.includes("Admin");
+
   if (!hasMounted) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", mt: 10, bgcolor: '#f8fafc' }}>
@@ -169,49 +171,48 @@ const Dashboard = () => {
         <Sidebar />
         <MainContainer>
           <TitleTypography variant="h4">
-            Admin Panel
+            {isAdmin ? "Admin Panel" : "User Panel"}
           </TitleTypography>
 
-          {adminError && (
-            <ErrorTypography>
-              Admin Error: {adminError}
-            </ErrorTypography>
-          )}
           {notesError && (
             <ErrorTypography>
               Notes Error: {notesError}
             </ErrorTypography>
           )}
 
-          <SectionTypography variant="h6">
-            User Management
-          </SectionTypography>
-          <StyledTable>
-            <TableHead>
-              <TableRow>
-                <TableCell>User</TableCell>
-                <TableCell>Email</TableCell>
-                <TableCell>Notes Count</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {users.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={3}>No users available</TableCell>
-                </TableRow>
-              ) : (
-                users.map((user: User) => (
-                  <TableRow key={user._id}>
-                    <TableCell>{user.username}</TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>
-                      {notes.filter((note: Note) => note.userId === user._id).length}
-                    </TableCell>
+          {isAdmin && (
+            <>
+              <SectionTypography variant="h6">
+                User Management
+              </SectionTypography>
+              <StyledTable>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>User</TableCell>
+                    <TableCell>Email</TableCell>
+                    <TableCell>Notes Count</TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </StyledTable>
+                </TableHead>
+                <TableBody>
+                  {users.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={3}>No users available</TableCell>
+                    </TableRow>
+                  ) : (
+                    users.map((user: User) => (
+                      <TableRow key={user._id}>
+                        <TableCell>{user.username}</TableCell>
+                        <TableCell>{user.email}</TableCell>
+                        <TableCell>
+                          {notes.filter((note: Note) => note.userId === user._id).length}
+                        </TableCell>
+                      </TableRow>
+                    )))
+                  }
+                </TableBody>
+              </StyledTable>
+            </>
+          )}
 
           <SectionTypography variant="h6">
             Note Management

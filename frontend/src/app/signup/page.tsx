@@ -14,7 +14,7 @@ import 'react-toastify/dist/ReactToastify.css';
 export default function Signup() {
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
-  const { username, email, password, roles, loading, isAuthenticated, error } = useSelector(
+  const { username, email, password, roles, loading, isAuthenticated, error, signupSuccess } = useSelector(
     (state: RootState) => state.auth
   );
 
@@ -43,11 +43,18 @@ export default function Signup() {
     dispatch(setRoles(['User']));
   };
 
+
+  // useEffect(() => {
+  //   if (isAuthenticated) {
+  //     router.push('/dashboard');
+  //   }
+  // }, [isAuthenticated, router]);
+
   useEffect(() => {
-    if (isAuthenticated) {
+    if (signupSuccess) {
       router.push('/login');
     }
-  }, [isAuthenticated, router]);
+  }, [signupSuccess, router]);
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#f5f7fa' }}>

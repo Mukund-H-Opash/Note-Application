@@ -17,6 +17,7 @@ import {
 import { styled } from '@mui/material/styles';
 import { createNote, fetchNotes, updateNote } from "@/redux/notesSlice";
 import { checkAuth } from "@/redux/authSlice";
+import { fetchAllUsers } from "@/redux/userSlice";
 
 interface User {
   _id: string;
@@ -129,7 +130,7 @@ const CreateNotePage = () => {
   const { id } = useParams();
   const { isAuthenticated } = useSelector((state: RootState) => state.auth);
   const { notes, loading, error } = useSelector((state: RootState) => state.notes);
-  const users = useSelector((state: RootState) => state.admin.users);
+  const allUsers = useSelector((state: RootState) => state.user.allUsers); // Use allUsers from userSlice
 
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -147,24 +148,24 @@ const CreateNotePage = () => {
 
   useEffect(() => {
     const verifyAuth = async () => {
-      await dispatch(checkAuth());
-      if (!isAuthenticated) {
-        router.push("/login");
-      } else if (id && (isEditMode || isAddCollaboratorMode)) {
-        const note = notes.find((n) => n._id === id);
-        if (note) {
-          setTitle(note.title);
-          setContent(note.content);
-          setTags(note.tags);
-          setCollaborators(note.collaborators);
-        } else {
-          await dispatch(fetchNotes());
-          const updatedNote = notes.find((n) => n._id === id);
-          if (updatedNote) {
-            setTitle(updatedNote.title);
-            setContent(updatedNote.content);
-            setTags(updatedNote.tags);
-            setCollaborators(updatedNote.collaborators);
+      if (isAuthenticated) {
+        dispatch(fetchAllUsers()); // Fetch all users for collaborator selection
+        if (id && (isEditMode || isAddCollaboratorMode)) {
+          const note = notes.find((n) => n._id === id);
+          if (note) {
+            setTitle(note.title);
+            setContent(note.content);
+            setTags(note.tags);
+            setCollaborators(note.collaborators);
+          } else {
+            await dispatch(fetchNotes());
+            const updatedNote = notes.find((n) => n._id === id);
+            if (updatedNote) {
+              setTitle(updatedNote.title);
+              setContent(updatedNote.content);
+              setTags(updatedNote.tags);
+              setCollaborators(updatedNote.collaborators);
+            }
           }
         }
       }
@@ -267,12 +268,13 @@ const CreateNotePage = () => {
               />
             ))}
           </Box>
-          <Autocomplete
+          <Autocomplete<User, true, false, false>
             multiple
-            options={users}
+            options={allUsers as unknown as readonly User[]}
             getOptionLabel={(option: User) => option.username}
-            value={users.filter((user: User) => collaborators.includes(user._id))}
-            onChange={(_, value: User[]) => setCollaborators(value.map((user) => user._id))}
+            isOptionEqualToValue={(option, value) => option._id === value._id}
+            value={allUsers.filter((user: Partial<User>) => user._id && collaborators.includes(user._id)) as User[]}
+            onChange={(_, value: readonly User[]) => setCollaborators(value.map((user) => user._id))}
             renderInput={(params) => (
               <StyledTextField {...params} label="Collaborators" placeholder="Select users" />
             )}

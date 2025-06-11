@@ -1,6 +1,8 @@
+// frontend/src/app/layout.tsx
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
-import { Providers}  from './providers';
+import { Providers } from './providers';
+import AuthWrapper from './AuthWrapper'; // Import the new AuthWrapper
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -16,8 +18,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body  className={inter.className}>
-        <Providers >{children}</Providers>
+      <body className={inter.className}>
+        <Providers>
+          <AuthWrapper>{children}</AuthWrapper> {/* Wrap children */}
+        </Providers>
       </body>
     </html>
   );

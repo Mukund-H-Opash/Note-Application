@@ -1,3 +1,4 @@
+// frontend/src/app/notes/[id]/page.tsx
 "use client";
 
 import React, { useEffect } from "react";
@@ -20,11 +21,15 @@ import {
 } from "@mui/material";
 import { styled } from '@mui/material/styles';
 import { fetchNoteById, fetchCollaborators } from "@/redux/notesSlice";
-import { checkAuth } from "@/redux/authSlice";
+// import { checkAuth } from "@/redux/authSlice"; // No longer needed here
 
 interface Note {
   _id: string;
-  userId: string;
+  userId: { // Updated type for populated userId/page.tsx]
+    _id: string;
+    username: string;
+    email: string;
+  };
   collaborators: string[];
   title: string;
   content: string;
@@ -164,15 +169,15 @@ const NotePage = () => {
   const { id } = useParams();
   const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
   const { currentNote, collaborators, loading, error } = useSelector((state: RootState) => state.notes);
-  const users = useSelector((state: RootState) => state.admin.users);
+  // const users = useSelector((state: RootState) => state.admin.users); // No longer needed
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        await dispatch(checkAuth());
+        // await dispatch(checkAuth()); // Removed checkAuth call/page.tsx]
         if (isAuthenticated && id) {
           await dispatch(fetchNoteById(id as string));
-        } else {
+        } else if (!isAuthenticated) { // Only redirect if not authenticated after initial check/page.tsx]
           router.push("/login");
         }
       } catch (err) {
@@ -238,8 +243,8 @@ const NotePage = () => {
     );
   }
 
-  const author = users.find((u) => u._id === currentNote.userId);
-  const isOwner = user ? currentNote.userId === user._id : false;
+  // const author = users.find((u) => u._id === currentNote.userId); // No longer needed
+  const isOwner = user ? currentNote.userId._id === user._id : false; // Access _id from populated object/page.tsx]
   const isCollaborator = user ? currentNote.collaborators.includes(user._id) : false;
   const canAccessChat = isOwner || isCollaborator;
 
@@ -263,7 +268,7 @@ const NotePage = () => {
                 {currentNote.content}
               </ContentTypography>
               <MetaTypography variant="body2">
-                Author: {author ? author.username : "Unknown"}
+                Author: {currentNote.userId.username} {/* Direct access to username */}/page.tsx]
               </MetaTypography>
               <MetaTypography variant="body2">
                 Created: {new Date(currentNote.createdAt).toISOString().split("T")[0]}

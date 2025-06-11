@@ -6,7 +6,7 @@ const authMiddleware = require('../middleware/authMiddleware');
 
 router.get('/all', authMiddleware, async (req, res) => {
     try {
-        const users = await User.find().select('username email'); // Fetch only necessary fields
+        const users = await User.find().select('username email'); // Fetch only necessary fields for collaboration
         res.json(users);
     } catch (error) {
         res.status(500).json({ message: "Server error", error: error.message });

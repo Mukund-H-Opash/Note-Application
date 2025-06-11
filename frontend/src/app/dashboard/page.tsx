@@ -1,3 +1,4 @@
+// frontend/src/app/dashboard/page.tsx
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -19,7 +20,7 @@ import { styled } from '@mui/material/styles';
 import type { RootState, AppDispatch } from "@/redux/store";
 import { fetchUsers } from "@/redux/adminSlice";
 import { fetchNotes } from "@/redux/notesSlice";
-import Cookies from "js-cookie";
+// import Cookies from "js-cookie"; // Not needed here anymore
 
 interface User {
   _id: string;
@@ -33,7 +34,7 @@ interface User {
 
 interface Note {
   _id: string;
-  userId: {
+  userId: { // Updated type for populated userId
     _id: string;
     username: string;
     email: string;
@@ -132,24 +133,16 @@ const Dashboard = () => {
   const notes = useSelector((state: RootState) => state.notes.notes);
   const notesError = useSelector((state: RootState) => state.notes.error);
 
-  const [hasMounted, setHasMounted] = useState(false);
+  // No longer need hasMounted here as AuthWrapper handles initial auth state
+  // const [hasMounted, setHasMounted] = useState(false);
 
   useEffect(() => {
-    setHasMounted(true);
-    const token = Cookies.get('token');
-    if (isAuthenticated && token) {
+    // Only fetch data if authenticated
+    if (isAuthenticated) {
       dispatch(fetchUsers());
       dispatch(fetchNotes());
-    } else if (!token) {
-      router.push("/login");
     }
-  }, [dispatch, isAuthenticated, router]);
-
-  useEffect(() => {
-    if (hasMounted && !isAuthenticated) {
-      router.push("/login");
-    }
-  }, [isAuthenticated, hasMounted, router]);
+  }, [dispatch, isAuthenticated]); // Depend on isAuthenticated
 
   const handleNoteClick = (id: string) => {
     router.push(`/notes/${id}`);
@@ -157,12 +150,9 @@ const Dashboard = () => {
 
   const isAdmin = user?.roles?.includes("Admin");
 
-  if (!hasMounted) {
-    return (
-      <Box sx={{ display: "flex", justifyContent: "center", mt: 10, bgcolor: '#f8fafc' }}>
-        <CircularProgress sx={{ color: '#3b82f6' }} />
-      </Box>
-    );
+  // No initial loading state based on authLoading anymore as AuthWrapper handles it
+  if (!isAuthenticated) {
+    return null; // AuthWrapper will redirect if not authenticated
   }
 
   return (
@@ -208,7 +198,7 @@ const Dashboard = () => {
                         <TableCell>{user.username}</TableCell>
                         <TableCell>{user.email}</TableCell>
                         <TableCell>
-                          {notes.filter((note: Note) => note.userId._id === user._id).length}
+                          {notes.filter((note: Note) => note.userId._id === user._id).length} {/* Updated: access _id from populated object */}
                         </TableCell>
                       </TableRow>
                     )))
@@ -237,11 +227,11 @@ const Dashboard = () => {
                 </TableRow>
               ) : (
                 notes.map((note: Note) => {
-                  const author = users.find((user: User) => user._id === note.userId._id);
+                  // const author = users.find((user: User) => user._id === note.userId); // No longer needed
                   return (
                     <TableRow key={note._id}>
                       <TableCell>{note.title}</TableCell>
-                      <TableCell>{author ? author.username : "Unknown"}</TableCell>
+                      <TableCell>{note.userId.username}</TableCell> {/* Direct access to username */}
                       <TableCell>
                         {new Date(note.createdAt).toISOString().split("T")[0]}
                       </TableCell>

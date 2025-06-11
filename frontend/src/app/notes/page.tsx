@@ -1,3 +1,4 @@
+// frontend/src/app/notes/page.tsx
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -27,12 +28,15 @@ import {
 import { ExpandMore, ExpandLess } from "@mui/icons-material";
 import { styled } from '@mui/material/styles';
 import { fetchNotes, fetchCollaborators, deleteNote } from "@/redux/notesSlice";
-import { checkAuth } from "@/redux/authSlice";
 import Sidebar from "@/components/Sidebar";
 
 interface Note {
   _id: string;
-  userId: string;
+  userId: {
+    _id: string;
+    username: string;
+    email: string;
+  };
   collaborators: string[];
   title: string;
   content: string;
@@ -206,7 +210,7 @@ const DialogContentTypography = styled(Typography)({
 const NotesListPage = () => {
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
-  const { isAuthenticated } = useSelector((state: RootState) => state.auth);
+  const { isAuthenticated, user } = useSelector((state: RootState) => state.auth); // Get user object
   const { notes, collaborators, loading, error } = useSelector((state: RootState) => state.notes);
   const users = useSelector((state: RootState) => state.admin.users);
   const [expandedNoteId, setExpandedNoteId] = useState<string | null>(null);
@@ -214,9 +218,10 @@ const NotesListPage = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [noteToDelete, setNoteToDelete] = useState<string | null>(null);
 
+  const isAdmin = user?.roles?.includes("Admin"); // Check if user is Admin
+
   useEffect(() => {
     const verifyAuth = async () => {
-      await dispatch(checkAuth());
       if (isAuthenticated && !hasFetched) {
         await dispatch(fetchNotes());
         setHasFetched(true);
@@ -336,15 +341,15 @@ const NotesListPage = () => {
                 </TableRow>
               ) : (
                 notes.map((note) => {
-                  const author = users.find((user: User) => user._id === note.userId);
                   const noteCollaborators = collaborators.filter((user) =>
                     note.collaborators.includes(user._id)
                   );
+                  const isNoteOwner = user?._id === note.userId._id; // Check if current user is note owner
                   return (
                     <React.Fragment key={note._id}>
                       <TableRow>
                         <TableCell>{note.title}</TableCell>
-                        <TableCell>{author ? author.username : "Unknown"}</TableCell>
+                        <TableCell>{note.userId.username}</TableCell>
                         <TableCell>{new Date(note.createdAt).toISOString().split("T")[0]}</TableCell>
                         <TableCell>
                           <ActionButton
@@ -359,18 +364,20 @@ const NotesListPage = () => {
                           >
                             Edit
                           </ActionButton>
-                          <ActionButton
-                            variant="outlined"
-                            sx={{
-                              borderColor: '#6b7280',
-                              color: '#6b7280',
-                              '&:hover': { borderColor: '#4b5563', color: '#4b5563', backgroundColor: '#f1f5f9' },
-                              mr: 1,
-                            }}
-                            onClick={() => handleAddCollaborator(note._id)}
-                          >
-                            Add Collaborator
-                          </ActionButton>
+                          {(isAdmin || isNoteOwner) && ( // Only show Add Collaborator if Admin or Note Owner
+                            <ActionButton
+                              variant="outlined"
+                              sx={{
+                                borderColor: '#6b7280',
+                                color: '#6b7280',
+                                '&:hover': { borderColor: '#4b5563', color: '#4b5563', backgroundColor: '#f1f5f9' },
+                                mr: 1,
+                              }}
+                              onClick={() => handleAddCollaborator(note._id)}
+                            >
+                              Add Collaborator
+                            </ActionButton>
+                          )}
                           <ActionButton
                             variant="outlined"
                             sx={{

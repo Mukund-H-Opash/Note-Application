@@ -1,3 +1,4 @@
+// backend/controllers/notesController.js
 const Note = require("../models/note");
 
 // Create a new note
@@ -39,7 +40,6 @@ const getNotes = async (req, res) => {
   }
 };
 
-// Get a single note by ID
 const getNoteById = async (req, res) => {
   try {
     const note = await Note.findById(req.params.id)

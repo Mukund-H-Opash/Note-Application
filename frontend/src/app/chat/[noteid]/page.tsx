@@ -1,3 +1,4 @@
+// frontend/src/app/chat/[noteid]/page.tsx
 "use client";
 import React, { useEffect, useRef, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
@@ -18,10 +19,10 @@ import {
 import { styled } from '@mui/material/styles';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ChatMessage from '@/components/ChatMessages';
-import { checkAuth } from '@/redux/authSlice';
+// import { checkAuth } from '@/redux/authSlice'; // No longer needed here
 import { initializeSocket, sendMessage, disconnectSocket } from '@/redux/chatSlice';
 
-// Custom styled components
+// Custom styled components (rest of the file is unchanged, but included for completeness)
 const MainContainer = styled(Box)({
   maxWidth: 900,
   margin: '32px auto',
@@ -91,7 +92,7 @@ const ChatPage = () => {
   const { messages, connected, error } = useSelector((state: RootState) => state.chat);
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
-  const initialized = useRef(false); // Track initialization
+  const initialized = useRef(false);
 
   // Auto-scroll to bottom
   const scrollToBottom = () => {
@@ -103,7 +104,7 @@ const ChatPage = () => {
   }, [messages]);
 
   useEffect(() => {
-    if (initialized.current) return; // Prevent double initialization
+    if (initialized.current) return;
     initialized.current = true;
 
     if (!noteId || typeof noteId !== 'string') {
@@ -114,7 +115,7 @@ const ChatPage = () => {
     let isMounted = true;
     const fetchData = async () => {
       try {
-        await dispatch(checkAuth());
+        // await dispatch(checkAuth()); // Removed checkAuth call/page.tsx]
         if (!isAuthenticated || !user) {
           if (isMounted) router.push('/login');
           return;

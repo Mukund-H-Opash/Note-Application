@@ -1,3 +1,4 @@
+// frontend/src/redux/notesSlice.tsx
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import type { AppThunk } from './store';
 import Cookies from 'js-cookie';
@@ -5,7 +6,7 @@ import { setIsAuthenticated } from './authSlice';
 
 interface Note {
   _id: string;
-  userId: {
+  userId: { // Updated type for populated userId
     _id: string;
     username: string;
     email: string;

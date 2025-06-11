@@ -1,3 +1,4 @@
+// frontend/src/app/AuthWrapper.tsx
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -28,6 +29,7 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
       router.push('/login');
     }
   }, [isAuthenticated, initialCheckDone, pathname, router]);
+
 
   if (!initialCheckDone || authLoading) {
     return (

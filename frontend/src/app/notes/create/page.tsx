@@ -1,3 +1,4 @@
+// frontend/src/app/notes/create/page.tsx
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -16,17 +17,12 @@ import {
 } from "@mui/material";
 import { styled } from '@mui/material/styles';
 import { createNote, fetchNotes, updateNote } from "@/redux/notesSlice";
-import { checkAuth } from "@/redux/authSlice";
 import { fetchAllUsers } from "@/redux/userSlice";
 
 interface User {
   _id: string;
   username: string;
   email: string;
-  password: string;
-  roles: string[];
-  createdAt: string;
-  __v: number;
 }
 
 // Custom styled components
@@ -128,9 +124,9 @@ const CreateNotePage = () => {
   const router = useRouter();
   const pathname = usePathname();
   const { id } = useParams();
-  const { isAuthenticated } = useSelector((state: RootState) => state.auth);
+  const { isAuthenticated, user } = useSelector((state: RootState) => state.auth); // Get user object
   const { notes, loading, error } = useSelector((state: RootState) => state.notes);
-  const allUsers = useSelector((state: RootState) => state.user.allUsers); // Use allUsers from userSlice
+  const allUsers = useSelector((state: RootState) => state.user.allUsers);
 
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -146,10 +142,16 @@ const CreateNotePage = () => {
     ? "Add Collaborator"
     : "Create Note";
 
+  const isAdmin = user?.roles?.includes("Admin"); // Check if user is Admin
+
   useEffect(() => {
     const verifyAuth = async () => {
-      if (isAuthenticated) {
-        dispatch(fetchAllUsers()); // Fetch all users for collaborator selection
+      if (!isAuthenticated) {
+        router.push("/login");
+      } else {
+        if (isAdmin) { // Only fetch all users if admin
+          dispatch(fetchAllUsers());
+        }
         if (id && (isEditMode || isAddCollaboratorMode)) {
           const note = notes.find((n) => n._id === id);
           if (note) {
@@ -172,7 +174,7 @@ const CreateNotePage = () => {
     };
 
     verifyAuth();
-  }, [dispatch, isAuthenticated, router, id, notes, isEditMode, isAddCollaboratorMode]);
+  }, [dispatch, isAuthenticated, router, id, notes, isEditMode, isAddCollaboratorMode, isAdmin]); // Add isAdmin to dependency array
 
   const handleAddTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && tagInput.trim()) {
@@ -268,30 +270,31 @@ const CreateNotePage = () => {
               />
             ))}
           </Box>
-          <Autocomplete<User, true, false, false>
-            multiple
-            options={allUsers as unknown as readonly User[]}
-            getOptionLabel={(option: User) => option.username}
-            isOptionEqualToValue={(option, value) => option._id === value._id}
-            value={allUsers.filter((user: Partial<User>) => user._id && collaborators.includes(user._id)) as User[]}
-            onChange={(_, value: readonly User[]) => setCollaborators(value.map((user) => user._id))}
-            renderInput={(params) => (
-              <StyledTextField {...params} label="Collaborators" placeholder="Select users" />
-            )}
-            sx={{ mb: 3 }}
-            renderOption={(props, option: User) => (
-              <li {...props}>
-                <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                  <Typography sx={{ fontFamily: "'Inter', sans-serif", fontSize: '0.95rem', color: '#2d3748' }}>
-                    {option.username}
-                  </Typography>
-                  <Typography sx={{ fontFamily: "'Inter', sans-serif", fontSize: '0.85rem', color: '#718096' }}>
-                    {option.email}
-                  </Typography>
-                </Box>
-              </li>
-            )}
-          />
+          {isAdmin && ( // Only show Autocomplete if user is an Admin
+            <Autocomplete
+              multiple
+              options={allUsers}
+              getOptionLabel={(option: User) => option.username}
+              value={allUsers.filter((user: User) => collaborators.includes(user._id))}
+              onChange={(_, value: User[]) => setCollaborators(value.map((user) => user._id))}
+              renderInput={(params) => (
+                <StyledTextField {...params} label="Collaborators" placeholder="Select users" />
+              )}
+              sx={{ mb: 3 }}
+              renderOption={(props, option: User) => (
+                <li {...props}>
+                  <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                    <Typography sx={{ fontFamily: "'Inter', sans-serif", fontSize: '0.95rem', color: '#2d3748' }}>
+                      {option.username}
+                    </Typography>
+                    <Typography sx={{ fontFamily: "'Inter', sans-serif", fontSize: '0.85rem', color: '#718096' }}>
+                      {option.email}
+                    </Typography>
+                  </Box>
+                </li>
+              )}
+            />
+          )}
           <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
             <ActionButton
               type="submit"

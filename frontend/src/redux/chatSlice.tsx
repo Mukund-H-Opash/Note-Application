@@ -1,3 +1,4 @@
+// frontend/src/redux/chatSlice.tsx
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import type { AppThunk } from './store';
 import io, { Socket } from 'socket.io-client';
@@ -10,12 +11,21 @@ interface ChatMessage {
   timestamp: string;
 }
 
+// New interface for active users in a note room [new]
+interface ActiveUser {
+  userId: string;
+  username: string;
+  isTyping: boolean;
+  socketId?: string; // Optional: for internal tracking, can be omitted for client-side
+}
+
 interface ChatState {
   messages: ChatMessage[];
   connected: boolean;
   error: string | null;
   socketId: string | null;
   lastSystemMessage: string | null;
+  activeNoteUsers: ActiveUser[]; // New state to hold active users in the current note [new]
 }
 
 const initialState: ChatState = {
@@ -24,6 +34,7 @@ const initialState: ChatState = {
   error: null,
   socketId: null,
   lastSystemMessage: null,
+  activeNoteUsers: [], // Initialize new state [new]
 };
 
 // Use a ref to track socket instance
@@ -65,20 +76,24 @@ const chatSlice = createSlice({
     setSocket(state, action: PayloadAction<string | null>) {
       state.socketId = action.payload;
     },
+    // New reducer to update active note users [new]
+    setActiveNoteUsers(state, action: PayloadAction<ActiveUser[]>) {
+      state.activeNoteUsers = action.payload;
+    },
   },
 });
 
-export const { setMessages, addMessage, setConnected, setError, setSocket } = chatSlice.actions;
+export const { setMessages, addMessage, setConnected, setError, setSocket, setActiveNoteUsers } = chatSlice.actions; // Export new action [new]
 
-export const initializeSocket = (noteId: string, userId: string): AppThunk => async (dispatch, getState) => {
+export const initializeSocket = (noteId: string, userId: string, username: string): AppThunk => async (dispatch, getState) => { // Added username parameter [new]
   const { auth, notes } = getState();
   const user = auth.user;
   const currentNote = notes.currentNote;
 
   console.log('Initializing socket with userId:', userId, 'and user:', user); // Debug log
 
-  if (!user || !userId) {
-    dispatch(setError('User not authenticated.'));
+  if (!user || !userId || !username) { // Check username [new]
+    dispatch(setError('User not authenticated or username missing.')); // Updated error message [new]
     return;
   }
 
@@ -86,7 +101,7 @@ export const initializeSocket = (noteId: string, userId: string): AppThunk => as
     dispatch(setError('Note not found.'));
     return;
   }
-  const isCollaborator = currentNote.collaborators.includes(userId) || currentNote.userId === userId;
+  const isCollaborator = currentNote.collaborators.includes(userId) || currentNote.userId._id === userId; // Access _id from populated object [modified]
   if (!isCollaborator) {
     dispatch(setError('You are not a collaborator of this note and cannot join the chat.'));
     return;
@@ -96,7 +111,7 @@ export const initializeSocket = (noteId: string, userId: string): AppThunk => as
     console.log('Socket already initialized, reusing instance');
     dispatch(setSocket(socketInstance?.id || null));
     dispatch(setConnected(socketInstance.connected));
-    socketInstance.emit('joinNoteRoom', { noteId, userId });
+    socketInstance.emit('joinNoteRoom', { noteId, userId, username }); // Pass username to join event [new]
     return;
   }
 
@@ -113,7 +128,7 @@ export const initializeSocket = (noteId: string, userId: string): AppThunk => as
       console.log('Socket connected:', socketInstance?.id);
       dispatch(setConnected(true));
       dispatch(setError(null));
-      socketInstance?.emit('joinNoteRoom', { noteId, userId });
+      socketInstance?.emit('joinNoteRoom', { noteId, userId, username }); // Pass username to join event [new]
     });
 
     socketInstance.on('connect_error', (err) => {
@@ -144,10 +159,17 @@ export const initializeSocket = (noteId: string, userId: string): AppThunk => as
       }
     });
 
+    // New socket event listener for note presence updates [new]
+    socketInstance.on('notePresenceUpdate', (data: { noteId: string, users: ActiveUser[] }) => {
+        console.log('Note presence update received:', data);
+        dispatch(setActiveNoteUsers(data.users));
+    });
+
     socketInstance.on('disconnect', () => {
       console.log('Socket disconnected');
       dispatch(setConnected(false));
       dispatch(setError('Disconnected from chat server.'));
+      dispatch(setActiveNoteUsers([])); // Clear active users on disconnect [new]
     });
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
@@ -171,6 +193,21 @@ export const sendMessage = (noteId: string, message: string, sender: string): Ap
   dispatch(addMessage({ sender, message, timestamp: new Date().toISOString() }));
 };
 
+// New thunks to emit typing status events [new]
+export const emitTypingNote = (noteId: string, userId: string): AppThunk => (dispatch, getState) => {
+    const { chat } = getState();
+    if (chat.connected && socketInstance) {
+        socketInstance.emit('typingNote', { noteId, userId });
+    }
+};
+
+export const emitStoppedTypingNote = (noteId: string, userId: string): AppThunk => (dispatch, getState) => {
+    const { chat } = getState();
+    if (chat.connected && socketInstance) {
+        socketInstance.emit('stoppedTypingNote', { noteId, userId });
+    }
+};
+
 export const disconnectSocket = (): AppThunk => async (dispatch, getState) => {
   const { chat } = getState();
   if (chat.socketId && socketInstance) {
@@ -179,6 +216,7 @@ export const disconnectSocket = (): AppThunk => async (dispatch, getState) => {
     dispatch(setSocket(null));
     dispatch(setConnected(false));
     dispatch(setMessages([]));
+    dispatch(setActiveNoteUsers([])); // Clear active users on disconnect [new]
   }
 };
 

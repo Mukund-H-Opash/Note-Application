@@ -57,7 +57,7 @@ export const fetchAllUsers = (): AppThunk => async (dispatch) => {
       return;
     }
 
-    const response = await fetch('http://localhost:5000/users/all', { // Call the new /users/all endpoint
+    const response = await fetch('http://localhost:5000/admin/', {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
@@ -80,3 +80,5 @@ export const fetchAllUsers = (): AppThunk => async (dispatch) => {
 };
 
 export default userSlice.reducer;
+
+

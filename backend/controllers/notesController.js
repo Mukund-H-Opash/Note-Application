@@ -30,16 +30,20 @@ const getNotes = async (req, res) => {
         { userId: req.user._id },
         { collaborators: req.user._id }
       ]
-    }).sort({ updatedAt: -1 });
+    })
+    .populate('userId', 'username email') // Populate userId with username and email
+    .sort({ updatedAt: -1 });
     res.json(notes);
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
 
+// Get a single note by ID
 const getNoteById = async (req, res) => {
   try {
-    const note = await Note.findById(req.params.id);
+    const note = await Note.findById(req.params.id)
+      .populate('userId', 'username email'); // Populate userId with username and email
     if (!note) return res.status(404).json({ message: "Note not found" });
     res.json(note);
   } catch (err) {

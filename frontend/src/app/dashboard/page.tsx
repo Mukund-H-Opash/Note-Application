@@ -33,7 +33,11 @@ interface User {
 
 interface Note {
   _id: string;
-  userId: string;
+  userId: {
+    _id: string;
+    username: string;
+    email: string;
+  };
   collaborators: string[];
   title: string;
   content: string;
@@ -204,7 +208,7 @@ const Dashboard = () => {
                         <TableCell>{user.username}</TableCell>
                         <TableCell>{user.email}</TableCell>
                         <TableCell>
-                          {notes.filter((note: Note) => note.userId === user._id).length}
+                          {notes.filter((note: Note) => note.userId._id === user._id).length}
                         </TableCell>
                       </TableRow>
                     )))
@@ -233,7 +237,7 @@ const Dashboard = () => {
                 </TableRow>
               ) : (
                 notes.map((note: Note) => {
-                  const author = users.find((user: User) => user._id === note.userId);
+                  const author = users.find((user: User) => user._id === note.userId._id);
                   return (
                     <TableRow key={note._id}>
                       <TableCell>{note.title}</TableCell>

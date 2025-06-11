@@ -5,6 +5,7 @@ const bodyParser = require('body-parser');
 const router = require('./routes/authRoutes');
 const noteRouter = require('./routes/notesRoutes');
 const adminRouter = require('./routes/adminRoutes');
+const userRouter = require('./routes/userRoutes'); 
 const { connectDB } = require('./dbconfig/db');
 const app = express();
 const server = http.createServer(app);
@@ -32,5 +33,6 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use('/notes', noteRouter);
 app.use('/admin', adminRouter);
 app.use('/auth', router);
+app.use('/user', userRouter);
 
 connectDB();

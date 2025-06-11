@@ -1,3 +1,4 @@
+// frontend/src/app/notes/edit/[id]/page.tsx
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -15,18 +16,19 @@ import {
   Chip,
 } from "@mui/material";
 import { styled } from '@mui/material/styles';
-import { createNote, fetchNotes, updateNote } from "@/redux/notesSlice";
-import { checkAuth } from "@/redux/authSlice";
+import { createNote, fetchNotes, updateNote, fetchNoteById } from "@/redux/notesSlice";
 import { fetchAllUsers } from "@/redux/userSlice";
+import { fetchUsers } from "@/redux/adminSlice";
+
 
 interface User {
   _id: string;
   username: string;
   email: string;
-  password: string;
-  roles: string[];
-  createdAt: string;
-  __v: number;
+  roles?: string[]; 
+  password?: string;
+  createdAt?: string;
+  __v?: number;
 }
 
 // Custom styled components
@@ -123,14 +125,18 @@ const ActionButton = styled(Button)(({ theme }) => ({
   },
 }));
 
-const CreateNotePage = () => {
+const CreateNotePage = () => { // This component is used for create, edit, and add collaborator
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
   const pathname = usePathname();
   const { id } = useParams();
-  const { isAuthenticated } = useSelector((state: RootState) => state.auth);
-  const { notes, loading, error } = useSelector((state: RootState) => state.notes);
-  const allUsers = useSelector((state: RootState) => state.user.allUsers); // Use allUsers from userSlice
+  const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
+  const { notes, loading: notesLoading, error, currentNote } = useSelector((state: RootState) => state.notes); // Get notesLoading from notesSlice [modified]
+  const allUsers = useSelector((state: RootState) => state.user.allUsers);
+  const adminUsers = useSelector((state: RootState) => state.admin.users);
+  const { loading: adminLoading } = useSelector((state: RootState) => state.admin); // Get adminLoading [new]
+  const { loading: userLoading } = useSelector((state: RootState) => state.user); // Get userLoading [new]
+
 
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -146,33 +152,62 @@ const CreateNotePage = () => {
     ? "Add Collaborator"
     : "Create Note";
 
+  const isAdmin = user?.roles?.includes("Admin");
+  const isNoteReadOnly = currentNote?.readOnly && !isAdmin;
+  const isNoteOwner = user?._id === currentNote?.userId?._id;
+
+  const usersForAutocomplete = isAdmin ? adminUsers : allUsers;
+
+
   useEffect(() => {
-    const verifyAuth = async () => {
-      if (isAuthenticated) {
-        dispatch(fetchAllUsers()); // Fetch all users for collaborator selection
-        if (id && (isEditMode || isAddCollaboratorMode)) {
-          const note = notes.find((n) => n._id === id);
-          if (note) {
-            setTitle(note.title);
-            setContent(note.content);
-            setTags(note.tags);
-            setCollaborators(note.collaborators);
-          } else {
-            await dispatch(fetchNotes());
-            const updatedNote = notes.find((n) => n._id === id);
-            if (updatedNote) {
-              setTitle(updatedNote.title);
-              setContent(updatedNote.content);
-              setTags(updatedNote.tags);
-              setCollaborators(updatedNote.collaborators);
-            }
-          }
+    const fetchDataAndAuth = async () => { // Renamed for clarity [modified]
+      if (!isAuthenticated) {
+        router.push("/login");
+        return;
+      }
+
+      // Fetch users for Autocomplete if not already loading and not already fetched [new]
+      if (isAdmin && !adminLoading && adminUsers.length === 0) {
+        dispatch(fetchUsers());
+      } else if (!isAdmin && !userLoading && allUsers.length === 0) {
+        dispatch(fetchAllUsers());
+      }
+
+      if (id && (isEditMode || isAddCollaboratorMode)) {
+        // Only fetch specific note by ID if it's not the correct one or not present AND not currently loading
+        if ((!currentNote || currentNote._id !== id) && !notesLoading) {
+          await dispatch(fetchNoteById(id as string));
         }
       }
     };
 
-    verifyAuth();
-  }, [dispatch, isAuthenticated, router, id, notes, isEditMode, isAddCollaboratorMode]);
+    fetchDataAndAuth();
+  }, [
+    dispatch,
+    isAuthenticated,
+    router,
+    id,
+    isEditMode,
+    isAddCollaboratorMode,
+    isAdmin,
+    currentNote, // Keep to react when currentNote in Redux changes
+    notesLoading, // Add notesLoading to dependencies to prevent redundant fetchNoteById [new]
+    adminLoading, // Add adminLoading to dependencies to prevent redundant fetchUsers [new]
+    userLoading, // Add userLoading to dependencies to prevent redundant fetchAllUsers [new]
+    adminUsers.length, // Add length checks to avoid refetching if data is already present [new]
+    allUsers.length // Add length checks to avoid refetching if data is already present [new]
+  ]);
+
+  // Update local state when currentNote from Redux changes [modified]
+  useEffect(() => {
+    if (currentNote && currentNote._id === id) {
+      setTitle(currentNote.title);
+      setContent(currentNote.content);
+      setTags(currentNote.tags);
+      setCollaborators(currentNote.collaborators);
+    }
+  }, [currentNote, id]); // Only depends on currentNote and id
+
 
   const handleAddTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && tagInput.trim()) {
@@ -191,6 +226,10 @@ const CreateNotePage = () => {
 
     if (isEditMode || isAddCollaboratorMode) {
       if (id) {
+        if (isNoteReadOnly && !isNoteOwner && !isAdmin) {
+            console.warn("Cannot update read-only note.");
+            return;
+        }
         await dispatch(updateNote(id as string, { title, content, tags, collaborators }));
       }
     } else {
@@ -202,7 +241,7 @@ const CreateNotePage = () => {
     }
   };
 
-  if (loading) {
+  if (notesLoading && currentNote?._id !== id) { // Show loading only if the specific note isn't loaded yet [modified]
     return (
       <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", bgcolor: '#f8fafc' }}>
         <CircularProgress sx={{ color: '#3b82f6' }} />
@@ -228,6 +267,11 @@ const CreateNotePage = () => {
             Error: {error}
           </ErrorTypography>
         )}
+        {isNoteReadOnly && (
+            <ErrorTypography sx={{ color: 'info.main', bgcolor: 'info.light' }}>
+                This note is currently set to Read-Only mode by the owner. You cannot make changes.
+            </ErrorTypography>
+        )}
         <form onSubmit={handleSubmit}>
           <StyledTextField
             label="Title"
@@ -235,7 +279,7 @@ const CreateNotePage = () => {
             onChange={(e) => setTitle(e.target.value)}
             fullWidth
             required={!isAddCollaboratorMode}
-            disabled={isAddCollaboratorMode}
+            disabled={isAddCollaboratorMode || isNoteReadOnly}
             sx={{ mb: 3 }}
           />
           <StyledTextField
@@ -246,7 +290,7 @@ const CreateNotePage = () => {
             multiline
             rows={6}
             required={!isAddCollaboratorMode}
-            disabled={isAddCollaboratorMode}
+            disabled={isAddCollaboratorMode || isNoteReadOnly}
             sx={{ mb: 3 }}
           />
           <StyledTextField
@@ -255,7 +299,7 @@ const CreateNotePage = () => {
             onChange={(e) => setTagInput(e.target.value)}
             onKeyDown={handleAddTag}
             fullWidth
-            disabled={isAddCollaboratorMode}
+            disabled={isAddCollaboratorMode || isNoteReadOnly}
             sx={{ mb: 3 }}
           />
           <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mb: 3 }}>
@@ -263,40 +307,41 @@ const CreateNotePage = () => {
               <StyledChip
                 key={tag}
                 label={tag}
-                onDelete={isAddCollaboratorMode ? undefined : () => handleRemoveTag(tag)}
+                onDelete={isAddCollaboratorMode || isNoteReadOnly ? undefined : () => handleRemoveTag(tag)}
                 variant="filled"
               />
             ))}
           </Box>
-          <Autocomplete<User, true, false, false>
-            multiple
-            options={allUsers as unknown as readonly User[]}
-            getOptionLabel={(option: User) => option.username}
-            isOptionEqualToValue={(option, value) => option._id === value._id}
-            value={allUsers.filter((user: Partial<User>) => user._id && collaborators.includes(user._id)) as User[]}
-            onChange={(_, value: readonly User[]) => setCollaborators(value.map((user) => user._id))}
-            renderInput={(params) => (
-              <StyledTextField {...params} label="Collaborators" placeholder="Select users" />
-            )}
-            sx={{ mb: 3 }}
-            renderOption={(props, option: User) => (
-              <li {...props}>
-                <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                  <Typography sx={{ fontFamily: "'Inter', sans-serif", fontSize: '0.95rem', color: '#2d3748' }}>
-                    {option.username}
-                  </Typography>
-                  <Typography sx={{ fontFamily: "'Inter', sans-serif", fontSize: '0.85rem', color: '#718096' }}>
-                    {option.email}
-                  </Typography>
-                </Box>
-              </li>
-            )}
-          />
+          {isAdmin && (
+            <Autocomplete
+              multiple
+              options={usersForAutocomplete}
+              getOptionLabel={(option: User) => option.username}
+              value={usersForAutocomplete.filter((user: User) => collaborators.includes(user._id))}
+              onChange={(_, value: User[]) => setCollaborators(value.map((user) => user._id))}
+              renderInput={(params) => (
+                <StyledTextField {...params} label="Collaborators" placeholder="Select users" />
+              )}
+              sx={{ mb: 3 }}
+              renderOption={(props, option: User) => (
+                <li {...props}>
+                  <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                    <Typography sx={{ fontFamily: "'Inter', sans-serif", fontSize: '0.95rem', color: '#2d3748' }}>
+                      {option.username}
+                    </Typography>
+                    <Typography sx={{ fontFamily: "'Inter', sans-serif", fontSize: '0.85rem', color: '#718096' }}>
+                      {option.email}
+                    </Typography>
+                  </Box>
+                </li>
+              )}
+            />
+          )}
           <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
             <ActionButton
               type="submit"
               variant="contained"
-              disabled={loading}
+              disabled={notesLoading || isNoteReadOnly} // Disable submit button if notes are loading or note is read-only [modified]
               sx={{ background: 'linear-gradient(90deg, #3b82f6, #60a5fa)' }}
             >
               {isEditMode ? "Update Note" : isAddCollaboratorMode ? "Add Collaborator" : "Create Note"}

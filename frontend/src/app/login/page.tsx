@@ -1,3 +1,4 @@
+// frontend/src/app/login/page.tsx
 "use client";
 
 import { Box, Typography, TextField, Button, Link } from '@mui/material';
@@ -5,7 +6,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '@/redux/store';
 import { setEmail, setPassword, login, setLoading } from '@/redux/authSlice';
 import Header from '@/components/Header';
-import Loader from '@/components/Loader';
+import Loader from '@/components/Loader'; // Import custom Loader [new]
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
@@ -61,7 +62,7 @@ export default function LoginPage() {
             height: 'calc(100vh - 64px)',
           }}
         >
-          <Loader onCancel={handleCancel} />
+          <Loader onCancel={handleCancel} /> {/* Use custom Loader [modified] */}
         </Box>
       ) : (
         <Box

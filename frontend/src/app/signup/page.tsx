@@ -1,3 +1,4 @@
+// frontend/src/app/signup/page.tsx
 "use client";
 
 import { Box, Typography, TextField, Button, Link, MenuItem, Select, InputLabel, FormControl } from '@mui/material';
@@ -5,7 +6,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '@/redux/store';
 import { setUsername, setEmail, setPassword, setRoles, signup, setLoading } from '@/redux/authSlice';
 import Header from '@/components/Header';
-import Loader from '@/components/Loader';
+import Loader from '@/components/Loader'; // Import custom Loader [new]
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
@@ -44,12 +45,6 @@ export default function Signup() {
   };
 
 
-  // useEffect(() => {
-  //   if (isAuthenticated) {
-  //     router.push('/dashboard');
-  //   }
-  // }, [isAuthenticated, router]);
-
   useEffect(() => {
     if (signupSuccess) {
       router.push('/login');
@@ -70,7 +65,7 @@ export default function Signup() {
             height: 'calc(100vh - 64px)',
           }}
         >
-          <Loader onCancel={handleCancel} />
+          <Loader onCancel={handleCancel} /> {/* Use custom Loader [modified] */}
         </Box>
       ) : (
         <Box

@@ -19,10 +19,10 @@ import {
 } from "@mui/material";
 import { styled } from '@mui/material/styles';
 import Cookies from 'js-cookie';
-// import { checkAuth } from "@/redux/authSlice"; // No longer needed here
 import { fetchProfile } from "@/redux/profileSlice";
+import Loader from "@/components/Loader"; 
 
-// Custom styled components (rest of the file is unchanged, but included for completeness)
+// Custom styled components
 const MainContainer = styled(Box)({
   maxWidth: 900,
   margin: '32px auto',
@@ -148,7 +148,6 @@ const ProfilePage = () => {
 
   useEffect(() => {
     const verifyAuthAndFetchProfile = async () => {
-      // await dispatch(checkAuth()); // Removed checkAuth call
       if (!isAuthenticated) {
         router.push("/login");
       } else {
@@ -164,16 +163,15 @@ const ProfilePage = () => {
   };
 
   const handleLogout = async () => {
-    // await dispatch(logout()); // Assuming logout is handled elsewhere or not implemented here
-    Cookies.remove('auth'); // Removing 'auth' cookie directly
-    Cookies.remove('token'); // Also remove 'token' cookie to ensure full logout
+    Cookies.remove('auth');
+    Cookies.remove('token');
     router.push("/login");
   };
 
   if (loading) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", bgcolor: '#f8fafc' }}>
-        <CircularProgress sx={{ color: '#3b82f6' }} />
+        <Loader /> {/* Replaced CircularProgress with custom Loader [modified] */}
       </Box>
     );
   }

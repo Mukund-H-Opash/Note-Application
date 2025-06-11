@@ -6,7 +6,7 @@ import { setIsAuthenticated } from './authSlice';
 
 interface Note {
   _id: string;
-  userId: { // Updated type for populated userId
+  userId: {
     _id: string;
     username: string;
     email: string;
@@ -15,6 +15,7 @@ interface Note {
   title: string;
   content: string;
   tags: string[];
+  readOnly: boolean;
   createdAt: string;
   updatedAt: string;
   __v: number;
@@ -36,6 +37,11 @@ interface NotesState {
   collaborators: User[];
   loading: boolean;
   error: string | null;
+  // New pagination state [new]
+  currentPage: number;
+  totalPages: number;
+  totalNotes: number;
+  limit: number;
 }
 
 const initialState: NotesState = {
@@ -44,6 +50,11 @@ const initialState: NotesState = {
   collaborators: [],
   loading: false,
   error: null,
+  // Initial pagination state [new]
+  currentPage: 1,
+  totalPages: 1,
+  totalNotes: 0,
+  limit: 10,
 };
 
 const notesSlice = createSlice({
@@ -54,9 +65,14 @@ const notesSlice = createSlice({
       state.loading = true;
       state.error = null;
     },
-    fetchNotesSuccess(state, action: PayloadAction<Note[]>) {
+    // Modified to correctly handle paginated response [modified]
+    fetchNotesSuccess(state, action: PayloadAction<{ notes: Note[], currentPage: number, totalPages: number, totalNotes: number, limit: number }>) {
       state.loading = false;
-      state.notes = action.payload;
+      state.notes = action.payload.notes;
+      state.currentPage = action.payload.currentPage;
+      state.totalPages = action.payload.totalPages;
+      state.totalNotes = action.payload.totalNotes;
+      state.limit = action.payload.limit;
     },
     fetchNotesFailure(state, action: PayloadAction<string>) {
       state.loading = false;
@@ -93,7 +109,13 @@ const notesSlice = createSlice({
     },
     createNoteSuccess(state, action: PayloadAction<Note>) {
       state.loading = false;
-      state.notes.push(action.payload);
+      // When a note is created, it's typically added to the start of the list on the first page
+      // For accurate pagination, a full re-fetch of notes might be necessary, or
+      // you can manually insert and adjust pagination metadata. For simplicity,
+      // it might be better to trigger fetchNotes(1, state.limit) after creation.
+      // For now, it just pushes to the local array. If paginated, this might
+      // not immediately show if it falls outside the current page.
+      // state.notes.push(action.payload); // This line might need review with pagination
     },
     createNoteFailure(state, action: PayloadAction<string>) {
       state.loading = false;
@@ -108,6 +130,9 @@ const notesSlice = createSlice({
       const index = state.notes.findIndex((note) => note._id === action.payload._id);
       if (index !== -1) {
         state.notes[index] = action.payload;
+        if (state.currentNote && state.currentNote._id === action.payload._id) {
+          state.currentNote = action.payload;
+        }
       }
     },
     updateNoteFailure(state, action: PayloadAction<string>) {
@@ -121,6 +146,8 @@ const notesSlice = createSlice({
     deleteNoteSuccess(state, action: PayloadAction<string>) {
       state.loading = false;
       state.notes = state.notes.filter((note) => note._id !== action.payload);
+      // After delete, total notes count might decrease, requiring re-calculation of totalPages
+      // It's often simplest to trigger fetchNotes(state.currentPage, state.limit) after a delete.
     },
     deleteNoteFailure(state, action: PayloadAction<string>) {
       state.loading = false;
@@ -150,17 +177,17 @@ export const {
   deleteNoteFailure,
 } = notesSlice.actions;
 
-export const fetchNotes = (): AppThunk => async (dispatch) => {
+// Modified to accept page and limit parameters [modified]
+export const fetchNotes = (page: number = 1, limit: number = 10): AppThunk => async (dispatch) => {
   dispatch(fetchNotesStart());
   try {
     const token = Cookies.get('token');
-    // console.log('Token in fetchNotes:', token);
     if (!token) {
       dispatch(fetchNotesFailure('No token found in cookies'));
       return;
     }
 
-    const response = await fetch('http://localhost:5000/notes', {
+    const response = await fetch(`http://localhost:5000/notes?page=${page}&limit=${limit}`, { // Pass page and limit to API [modified]
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -368,8 +395,44 @@ export const deleteNote = (id: string): AppThunk => async (dispatch) => {
     }
 
     dispatch(deleteNoteSuccess(id));
+    // After delete, re-fetch notes to update pagination
+    dispatch(fetchNotes(initialState.currentPage, initialState.limit)); // Re-fetch current page [new]
   } catch (error) {
     dispatch(deleteNoteFailure((error as Error).message));
+  }
+};
+
+export const toggleNoteReadOnly = (id: string, readOnly: boolean): AppThunk => async (dispatch) => {
+  dispatch(updateNoteStart());
+  try {
+    const token = Cookies.get('token');
+    if (!token) {
+      dispatch(updateNoteFailure('No token found in cookies'));
+      return;
+    }
+
+    const response = await fetch(`http://localhost:5000/notes/${id}/read-only`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ readOnly }),
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        const errorData = await response.json();
+        dispatch(setIsAuthenticated(false));
+        throw new Error('Unauthorized: Invalid or expired token');
+      }
+      throw new Error(`Failed to toggle read-only status: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    dispatch(updateNoteSuccess(data));
+  } catch (error) {
+    dispatch(updateNoteFailure((error as Error).message));
   }
 };
 

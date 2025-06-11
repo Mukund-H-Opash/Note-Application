@@ -7,6 +7,7 @@ import { AppDispatch, RootState } from '@/redux/store';
 import { checkAuth } from '@/redux/authSlice';
 import { Box, CircularProgress } from '@mui/material';
 import { usePathname, useRouter } from 'next/navigation';
+import Loader from "@/components/Loader"; // Import custom Loader [new]
 
 export default function AuthWrapper({ children }: { children: React.ReactNode }) {
   const dispatch: AppDispatch = useDispatch();
@@ -34,7 +35,7 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
   if (!initialCheckDone || authLoading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', bgcolor: '#f8fafc' }}>
-        <CircularProgress sx={{ color: '#3b82f6' }} />
+        <Loader /> {/* Replaced CircularProgress with custom Loader [modified] */}
       </Box>
     );
   }

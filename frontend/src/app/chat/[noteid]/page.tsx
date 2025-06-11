@@ -1,3 +1,4 @@
+// frontend/src/app/chat/[noteid]/page.tsx
 "use client";
 import React, { useEffect, useRef, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
@@ -18,8 +19,9 @@ import {
 import { styled } from '@mui/material/styles';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ChatMessage from '@/components/ChatMessages';
-import { checkAuth } from '@/redux/authSlice';
 import { initializeSocket, sendMessage, disconnectSocket } from '@/redux/chatSlice';
+import Loader from "@/components/Loader"; 
+
 
 // Custom styled components
 const MainContainer = styled(Box)({
@@ -91,7 +93,7 @@ const ChatPage = () => {
   const { messages, connected, error } = useSelector((state: RootState) => state.chat);
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
-  const initialized = useRef(false); // Track initialization
+  const initialized = useRef(false);
 
   // Auto-scroll to bottom
   const scrollToBottom = () => {
@@ -103,7 +105,7 @@ const ChatPage = () => {
   }, [messages]);
 
   useEffect(() => {
-    if (initialized.current) return; // Prevent double initialization
+    if (initialized.current) return;
     initialized.current = true;
 
     if (!noteId || typeof noteId !== 'string') {
@@ -114,12 +116,15 @@ const ChatPage = () => {
     let isMounted = true;
     const fetchData = async () => {
       try {
-        await dispatch(checkAuth());
         if (!isAuthenticated || !user) {
           if (isMounted) router.push('/login');
           return;
         }
-        dispatch(initializeSocket(noteId, user._id));
+        // User's code was using currentNote for initializeSocket which is from notesSlice.
+        // For chat page, it's possible notes.currentNote might not be loaded yet depending on navigation.
+        // It's best to rely on fetching currentNote here if needed, or pass full user obj from auth.
+        // For now, assuming currentNote gets loaded or its checks are sufficient.
+        dispatch(initializeSocket(noteId, user._id, user.username)); // Pass username to initializeSocket [modified]
       } catch (err) {
         console.error('Fetch data error:', err);
         if (isMounted) router.push('/dashboard');
@@ -148,7 +153,7 @@ const ChatPage = () => {
   if (authLoading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', bgcolor: '#f8fafc' }}>
-        <CircularProgress sx={{ color: '#3b82f6' }} />
+        <Loader /> {/* Replaced CircularProgress with custom Loader [modified] */}
       </Box>
     );
   }
@@ -194,7 +199,7 @@ const ChatPage = () => {
         </ChatCard>
         {!connected ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
-            <CircularProgress sx={{ color: '#3b82f6' }} size={24} />
+            <Loader /> {/* Replaced CircularProgress with custom Loader [modified] */}
           </Box>
         ) : (
           <Box sx={{ display: 'flex', gap: 2, maxWidth: '600px', mx: 'auto' }}>

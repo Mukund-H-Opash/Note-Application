@@ -1,3 +1,4 @@
+// backend/controllers/notesController.js
 const Note = require("../models/note");
 
 // Create a new note
@@ -31,7 +32,7 @@ const getNotes = async (req, res) => {
         { collaborators: req.user._id }
       ]
     })
-    .populate('userId', 'username email') // Populate userId with username and email
+    .populate('userId', 'username email')
     .sort({ updatedAt: -1 });
     res.json(notes);
   } catch (err) {
@@ -39,11 +40,10 @@ const getNotes = async (req, res) => {
   }
 };
 
-// Get a single note by ID
 const getNoteById = async (req, res) => {
   try {
     const note = await Note.findById(req.params.id)
-      .populate('userId', 'username email'); // Populate userId with username and email
+      .populate('userId', 'username email');
     if (!note) return res.status(404).json({ message: "Note not found" });
     res.json(note);
   } catch (err) {
@@ -64,6 +64,11 @@ const updateNote = async (req, res) => {
     });
 
     if (!note) return res.status(404).json({ message: "Note not found" });
+
+    // Only allow owner to change collaborators
+    if (collaborators && note.userId.toString() !== req.user._id.toString()) {
+        return res.status(403).json({ message: "Only the note owner can manage collaborators" });
+    }
 
     note.title = title || note.title;
     note.content = content || note.content;
@@ -94,10 +99,38 @@ const deleteNote = async (req, res) => {
   }
 };
 
+// Toggle readOnly status of a note (only if owner) [new]
+const toggleReadOnly = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { readOnly } = req.body; // Expecting { readOnly: true/false }
+
+    const note = await Note.findById(id);
+
+    if (!note) {
+      return res.status(404).json({ message: "Note not found" });
+    }
+
+    // Ensure only the owner can toggle readOnly status
+    if (note.userId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: "Access denied: Only the owner can change read-only status" });
+    }
+
+    note.readOnly = readOnly;
+    await note.save();
+
+    res.json(note);
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+
 module.exports = {
   createNote,
   getNotes,
   getNoteById,
   updateNote,
   deleteNote,
+  toggleReadOnly, 
 };

@@ -8,6 +8,10 @@ interface User {
   _id: string;
   username: string;
   email: string;
+  // password: string; // Do not include sensitive info here
+  // roles: string[];
+  // createdAt: string;
+  // __v: number;
 }
 
 interface UserState {
@@ -53,7 +57,7 @@ export const fetchAllUsers = (): AppThunk => async (dispatch) => {
       return;
     }
 
-    const response = await fetch('http://localhost:5000/users/all', {
+    const response = await fetch('http://localhost:5000/admin/', {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
@@ -76,3 +80,5 @@ export const fetchAllUsers = (): AppThunk => async (dispatch) => {
 };
 
 export default userSlice.reducer;
+
+
